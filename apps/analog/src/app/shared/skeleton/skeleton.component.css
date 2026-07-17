@@ -1,0 +1,27 @@
+.skeleton {
+  display: block;
+  background: linear-gradient(
+    100deg,
+    var(--color-surface-raised) 30%,
+    var(--color-surface-overlay) 50%,
+    var(--color-surface-raised) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--color-surface-raised);
+  }
+}

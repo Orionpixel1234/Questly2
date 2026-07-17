@@ -1,0 +1,251 @@
+@use 'sass:map';
+
+// Design tokens — single source of truth for color, spacing, and type.
+// Raw palette ramps are SCSS constants (compile-time); everything a component
+// should actually reference is the CSS custom property below, so theme
+// switching (dark/light) works at runtime via [data-theme] on :root.
+
+// ---------------------------------------------------------------------------
+// Raw palette ramps
+// ---------------------------------------------------------------------------
+
+$void: (
+  950: #05060b,
+  // page background, deepest
+  900: #0a0d16,
+  // default background
+  850: #0f1320,
+  // background, elevated
+  800: #141928,
+  // surface
+  750: #1a2033,
+  // raised surface / card
+  700: #212840,
+  // overlay (modal, popover)
+  650: #293052,
+  // border
+  600: #333c63, // border, strong
+);
+
+$mist: (
+  100: #f4f6fc,
+  // primary text on dark
+  300: #c7cee3,
+  // secondary text on dark
+  500: #8b93ac,
+  // muted text on dark
+  700: #5b637c, // disabled text on dark
+);
+
+$signal: (
+  // primary accent — telemetry amber
+  300: #ffcb84,
+  400: #ffb454,
+  500: #f5991f,
+  600: #d97a0c,
+  700: #b85f00,
+  800: #9a4e00
+);
+
+$orbit: (
+  // secondary accent — used sparingly: links, focus rings, info
+  300: #9feef2,
+  400: #6fe0e8,
+  500: #33c4d6,
+  600: #1d96a8,
+  700: #146b79
+);
+
+$daylight: (
+  50: #f6f7fb,
+  // default background, light theme
+  100: #ffffff,
+  // surface
+  200: #e7eaf3,
+  // border
+  300: #d3d8e8,
+  // border, strong
+  400: #b7beda, // reserved for stronger dividers
+);
+
+$ink: (
+  900: #10131d,
+  // primary text on light
+  700: #333b4f,
+  // secondary text on light
+  500: #5b6478,
+  // muted text on light
+  400: #7c879c, // disabled text on light
+);
+
+$semantic-dark: (
+  success: #3ed98a,
+  warning: #f0c419,
+  danger: #ff5c5c,
+  info: map.get($orbit, 500),
+);
+
+$semantic-light: (
+  success: #1fae68,
+  warning: #b8860b,
+  danger: #e23636,
+  info: map.get($orbit, 700),
+);
+
+// ---------------------------------------------------------------------------
+// Semantic color tokens — dark is the default theme; light overrides below.
+// ---------------------------------------------------------------------------
+
+:root {
+  --color-bg: #{map.get($void, 900)};
+  --color-bg-elevated: #{map.get($void, 850)};
+  --color-surface: #{map.get($void, 800)};
+  --color-surface-raised: #{map.get($void, 750)};
+  --color-surface-overlay: #{map.get($void, 700)};
+  --color-border: #{map.get($void, 650)};
+  --color-border-strong: #{map.get($void, 600)};
+
+  --color-text-primary: #{map.get($mist, 100)};
+  --color-text-secondary: #{map.get($mist, 300)};
+  --color-text-muted: #{map.get($mist, 500)};
+  --color-text-disabled: #{map.get($mist, 700)};
+
+  --color-accent: #{map.get($signal, 500)};
+  --color-accent-hover: #{map.get($signal, 400)};
+  --color-accent-active: #{map.get($signal, 600)};
+  --color-accent-contrast: #{map.get($void, 950)}; // text/icon color on top of --color-accent
+
+  --color-accent-secondary: #{map.get($orbit, 500)};
+  --color-accent-secondary-hover: #{map.get($orbit, 400)};
+  --color-accent-secondary-active: #{map.get($orbit, 600)};
+
+  --color-success: #{map.get($semantic-dark, success)};
+  --color-warning: #{map.get($semantic-dark, warning)};
+  --color-danger: #{map.get($semantic-dark, danger)};
+  --color-info: #{map.get($semantic-dark, info)};
+
+  --color-focus-ring: #{map.get($orbit, 400)};
+}
+
+:root[data-theme='light'] {
+  --color-bg: #{map.get($daylight, 50)};
+  --color-bg-elevated: #{map.get($daylight, 100)};
+  --color-surface: #{map.get($daylight, 100)};
+  --color-surface-raised: #{map.get($daylight, 100)};
+  --color-surface-overlay: #{map.get($daylight, 100)};
+  --color-border: #{map.get($daylight, 200)};
+  --color-border-strong: #{map.get($daylight, 300)};
+
+  --color-text-primary: #{map.get($ink, 900)};
+  --color-text-secondary: #{map.get($ink, 700)};
+  --color-text-muted: #{map.get($ink, 500)};
+  --color-text-disabled: #{map.get($ink, 400)};
+
+  --color-accent: #{map.get($signal, 700)};
+  --color-accent-hover: #{map.get($signal, 600)};
+  --color-accent-active: #{map.get($signal, 800)};
+  --color-accent-contrast: #ffffff;
+
+  --color-accent-secondary: #{map.get($orbit, 700)};
+  --color-accent-secondary-hover: #{map.get($orbit, 600)};
+  --color-accent-secondary-active: #{map.get($orbit, 700)};
+
+  --color-success: #{map.get($semantic-light, success)};
+  --color-warning: #{map.get($semantic-light, warning)};
+  --color-danger: #{map.get($semantic-light, danger)};
+  --color-info: #{map.get($semantic-light, info)};
+
+  --color-focus-ring: #{map.get($orbit, 600)};
+}
+
+// ---------------------------------------------------------------------------
+// Spacing scale — 4px base unit, rem-based
+// ---------------------------------------------------------------------------
+
+:root {
+  --space-0: 0;
+  --space-1: 0.25rem; // 4px
+  --space-2: 0.5rem; // 8px
+  --space-3: 0.75rem; // 12px
+  --space-4: 1rem; // 16px
+  --space-5: 1.25rem; // 20px
+  --space-6: 1.5rem; // 24px
+  --space-8: 2rem; // 32px
+  --space-10: 2.5rem; // 40px
+  --space-12: 3rem; // 48px
+  --space-16: 4rem; // 64px
+  --space-20: 5rem; // 80px
+  --space-24: 6rem; // 96px
+  --space-32: 8rem; // 128px
+}
+
+// ---------------------------------------------------------------------------
+// Type scale
+// ---------------------------------------------------------------------------
+
+:root {
+  // families — actual @font-face declarations load these elsewhere;
+  // fallbacks keep the stack usable before/without them
+  --font-display: 'Big Shoulders Display', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --text-xs: 0.75rem; // 12px — captions, meta
+  --text-sm: 0.875rem; // 14px — secondary body, UI labels
+  --text-base: 1rem; // 16px — body
+  --text-md: 1.125rem; // 18px — lead paragraph
+  --text-lg: 1.375rem; // 22px — h4
+  --text-xl: 1.75rem; // 28px — h3
+  --text-2xl: 2.25rem; // 36px — h2
+  --text-3xl: 3rem; // 48px — h1
+  --text-4xl: 4rem; // 64px — hero / display
+
+  --leading-tight: 1.1; // headings
+  --leading-snug: 1.3; // sub-headings, UI
+  --leading-normal: 1.5; // body
+  --leading-relaxed: 1.7; // long-form lesson content
+
+  --tracking-tight: -0.02em; // large display headings
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em; // uppercase eyebrows, section labels
+  --tracking-wider: 0.08em; // small stage/status codes
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+}
+
+// ---------------------------------------------------------------------------
+// Responsive breakpoints — matches Tailwind's defaults (see tailwind.css'
+// @theme block) so utility classes and hand-written CSS agree. SCSS
+// variables here because @media conditions can't read CSS custom
+// properties; the mirrored --breakpoint-* vars below are for JS
+// (matchMedia/getComputedStyle) call sites that want the same source.
+// ---------------------------------------------------------------------------
+
+$breakpoint-sm: 40rem; // 640px
+$breakpoint-md: 48rem; // 768px
+$breakpoint-lg: 64rem; // 1024px
+$breakpoint-xl: 80rem; // 1280px
+$breakpoint-2xl: 96rem; // 1536px
+
+@mixin above($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+@mixin below($breakpoint) {
+  @media (max-width: $breakpoint - 0.0625rem) {
+    @content;
+  }
+}
+
+:root {
+  --breakpoint-sm: #{$breakpoint-sm};
+  --breakpoint-md: #{$breakpoint-md};
+  --breakpoint-lg: #{$breakpoint-lg};
+  --breakpoint-xl: #{$breakpoint-xl};
+  --breakpoint-2xl: #{$breakpoint-2xl};
+}

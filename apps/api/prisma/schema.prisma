@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  // The rest of this NestJS app (Jest, `nest build`) is CommonJS; without
+  // this the generator defaults to ESM output and every consumer breaks
+  // with "exports is not defined in ES module scope".
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Fixed set of the four panel roles from the onboarding questionnaire.
+// A model (not an enum) so future permission/role metadata has somewhere to live.
+model Role {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id])
+  subjects     String[]
+  degreeTrack  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

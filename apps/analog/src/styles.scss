@@ -1,0 +1,25 @@
+@use './styles/tokens';
+@use './styles/fonts';
+@use './styles/material-theme';
+@use './styles/components';
+
+html,
+body {
+  display: block;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}

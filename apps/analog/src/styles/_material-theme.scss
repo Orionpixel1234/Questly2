@@ -1,0 +1,59 @@
+@use '@angular/material' as mat;
+@use './theme-colors' as theme-colors;
+
+// Material's own tonal palettes (generated from our accent hues in
+// theme-colors.scss) drive component structure; the override block below
+// then re-points Material's system tokens at our exact semantic tokens from
+// _tokens.scss, so Material components render in the same palette as the
+// rest of the app rather than Material's auto-derived neutrals.
+html {
+  color-scheme: dark;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: theme-colors.$primary-palette,
+        tertiary: theme-colors.$tertiary-palette,
+        theme-type: color-scheme,
+      ),
+      typography: (
+        plain-family: var(--font-body),
+        brand-family: var(--font-display),
+        bold-weight: 700,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+
+  --mat-sys-background: var(--color-bg);
+  --mat-sys-on-background: var(--color-text-primary);
+  --mat-sys-surface: var(--color-surface);
+  --mat-sys-surface-container-lowest: var(--color-bg);
+  --mat-sys-surface-container-low: var(--color-bg-elevated);
+  --mat-sys-surface-container: var(--color-surface);
+  --mat-sys-surface-container-high: var(--color-surface-raised);
+  --mat-sys-surface-container-highest: var(--color-surface-overlay);
+  --mat-sys-on-surface: var(--color-text-primary);
+  --mat-sys-on-surface-variant: var(--color-text-secondary);
+  --mat-sys-outline: var(--color-border);
+  --mat-sys-outline-variant: var(--color-border-strong);
+
+  --mat-sys-primary: var(--color-accent);
+  --mat-sys-on-primary: var(--color-accent-contrast);
+  --mat-sys-primary-container: var(--color-accent-hover);
+  --mat-sys-on-primary-container: var(--color-accent-contrast);
+
+  --mat-sys-tertiary: var(--color-accent-secondary);
+  --mat-sys-on-tertiary: var(--color-accent-contrast);
+  --mat-sys-tertiary-container: var(--color-accent-secondary-hover);
+  --mat-sys-on-tertiary-container: var(--color-accent-contrast);
+
+  --mat-sys-error: var(--color-danger);
+  --mat-sys-on-error: #ffffff;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
