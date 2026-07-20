@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+
+.lesson-renderer__empty {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.lesson-renderer__error {
+  padding: var(--space-4);
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+.lesson-renderer__error-title {
+  font-weight: var(--weight-semibold);
+  color: var(--color-danger);
+  margin: 0 0 var(--space-1);
+}
+
+.lesson-renderer__error-detail {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}

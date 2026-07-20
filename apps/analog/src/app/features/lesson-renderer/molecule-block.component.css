@@ -1,0 +1,22 @@
+.molecule-block {
+  width: 100%;
+  max-width: 16rem;
+  aspect-ratio: 1;
+  display: block;
+  margin: var(--space-2) auto;
+}
+
+.molecule-block__bond {
+  stroke: var(--color-border-strong);
+  stroke-width: 2;
+}
+
+.molecule-block__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--color-text-primary);
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}

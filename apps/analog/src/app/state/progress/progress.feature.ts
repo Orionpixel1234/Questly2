@@ -13,7 +13,7 @@ export interface ProgressState extends EntityState<SubjectProgress> {
 }
 
 export const progressAdapter = createEntityAdapter<SubjectProgress>({
-  selectId: (progress) => progress.subjectId,
+  selectId: (progress) => progress.subject,
 });
 
 export const initialProgressState: ProgressState =
@@ -36,17 +36,6 @@ export const progressFeature = createFeature({
     on(
       ProgressActions.loadProgressFailure,
       (state, { error }): ProgressState => ({ ...state, status: 'error', error }),
-    ),
-    on(ProgressActions.addExp, (state, { subjectId, amount }): ProgressState => {
-      const existing = state.entities[subjectId];
-      if (!existing) return state;
-      return progressAdapter.updateOne(
-        { id: subjectId, changes: { exp: existing.exp + amount } },
-        state,
-      );
-    }),
-    on(ProgressActions.setGoal, (state, { subjectId, goal }): ProgressState =>
-      progressAdapter.updateOne({ id: subjectId, changes: { goal } }, state),
     ),
   ),
   extraSelectors: ({ selectProgressState }) => {

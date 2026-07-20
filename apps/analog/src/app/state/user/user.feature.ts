@@ -28,6 +28,7 @@ export const userFeature = createFeature({
     ),
     on(
       UserActions.loadProfileSuccess,
+      UserActions.updateProfileSuccess,
       (state, { profile }): UserState => ({
         ...state,
         status: 'loaded',
@@ -37,14 +38,8 @@ export const userFeature = createFeature({
     ),
     on(
       UserActions.loadProfileFailure,
+      UserActions.updateProfileFailure,
       (state, { error }): UserState => ({ ...state, status: 'error', error }),
-    ),
-    on(
-      UserActions.updateProfile,
-      (state, { changes }): UserState => ({
-        ...state,
-        profile: state.profile ? { ...state.profile, ...changes } : null,
-      }),
     ),
     on(UserActions.clearProfile, (): UserState => initialUserState),
   ),

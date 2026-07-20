@@ -22,7 +22,12 @@
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // The shared libs (@questly/shared-types, @questly/lesson-dsl) import
+    // each other with literal .ts extensions so apps/api's Node runtime can
+    // resolve them directly (see apps/api/tsconfig.json) — Vite/esbuild
+    // resolve .ts specifiers natively, this just satisfies tsc's own check.
+    "allowImportingTsExtensions": true
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

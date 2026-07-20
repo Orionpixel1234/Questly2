@@ -5,6 +5,12 @@
   padding: var(--space-4) var(--space-6);
 }
 
+.app-shell-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .app-shell-brand {
   font-family: var(--font-display);
   font-weight: 700;
@@ -14,6 +20,20 @@
   color: var(--color-text-primary);
 }
 
-.app-shell-content {
+.app-shell-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
   padding: 0 var(--space-6) var(--space-6);
+}
+
+.app-shell-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 56rem) {
+  .app-shell-body {
+    flex-direction: column;
+  }
 }

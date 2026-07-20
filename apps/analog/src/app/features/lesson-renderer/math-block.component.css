@@ -1,0 +1,11 @@
+.math-block {
+  overflow-x: auto;
+  padding: var(--space-4) 0;
+  color: var(--color-text-primary);
+}
+
+.math-block__error {
+  color: var(--color-danger);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}

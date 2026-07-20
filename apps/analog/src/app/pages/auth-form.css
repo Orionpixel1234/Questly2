@@ -1,0 +1,77 @@
+.auth-form {
+  max-width: 28rem;
+}
+
+.auth-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-form__field input {
+  font: inherit;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: var(--space-3) var(--space-4);
+}
+
+.auth-form__field input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.auth-form__switch {
+  margin: var(--space-6) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-form__switch a {
+  color: var(--color-accent-secondary);
+}
+
+.auth-form__step-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+.auth-form__choice-group {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.auth-form__choice-group .btn {
+  flex: 1;
+}
+
+.auth-form__chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.auth-form__chip {
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+}
+
+.auth-form__actions {
+  display: flex;
+  gap: var(--space-3);
+}

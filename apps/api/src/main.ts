@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -13,6 +14,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, nestAdapter);
 
   app.setGlobalPrefix('api/v1');
+  app.use(cookieParser());
   app.enableCors({
     origin: process.env['ANALOG_ORIGIN'] ?? 'http://localhost:4200',
     credentials: true,
@@ -24,6 +26,7 @@ async function bootstrap() {
     .setTitle('Questly API')
     .setDescription('Backend API for the Questly learning platform')
     .setVersion('0.1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);

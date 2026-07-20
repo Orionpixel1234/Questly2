@@ -1,0 +1,7 @@
+{
+  "name": "lesson-dsl",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/lesson-dsl/src",
+  "projectType": "library",
+  "tags": []
+}

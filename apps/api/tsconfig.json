@@ -3,6 +3,14 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
+    // The shared libs (@questly/shared-types, @questly/lesson-dsl) are
+    // consumed as raw .ts source (no build step) and import each other with
+    // literal .ts extensions so Node's native TS execution can resolve them
+    // directly in dev (`nest start --watch` doesn't run compiled dist/).
+    // rewriteRelativeImportExtensions rewrites those to .js in tsc's own
+    // emitted output, so `nest build`'s dist/ still runs correctly too.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "esModuleInterop": true,
     "isolatedModules": true,
     "declaration": true,
@@ -13,8 +21,12 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "baseUrl": "./",
-    "incremental": true,
+    // Off: combined with nest-cli.json's deleteOutDir (which wipes dist/
+    // on every build), tsc's incremental cache goes stale and silently
+    // skips re-emitting files it thinks are already up to date.
+    "incremental": false,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,

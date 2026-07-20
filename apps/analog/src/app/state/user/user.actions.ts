@@ -8,6 +8,8 @@ export const UserActions = createActionGroup({
     'Load Profile Success': props<{ profile: UserProfile }>(),
     'Load Profile Failure': props<{ error: string }>(),
     'Update Profile': props<{ changes: Partial<UserProfile> }>(),
+    'Update Profile Success': props<{ profile: UserProfile }>(),
+    'Update Profile Failure': props<{ error: string }>(),
     'Clear Profile': emptyProps(),
   },
 });

@@ -16,7 +16,8 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@questly/shared-types": ["libs/shared-types/src/index.ts"]
+      "@questly/shared-types": ["libs/shared-types/src/index.ts"],
+      "@questly/lesson-dsl": ["libs/lesson-dsl/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

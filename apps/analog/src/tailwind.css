@@ -1,3 +1,4 @@
+@import 'katex/dist/katex.css';
 @import 'tailwindcss';
 
 /* Points Tailwind's theme at the same runtime CSS custom properties defined

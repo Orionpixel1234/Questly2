@@ -16,8 +16,11 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { authFeature } from './state/auth/auth.feature';
 import { AuthEffects } from './state/auth/auth.effects';
 import { userFeature } from './state/user/user.feature';
+import { UserEffects } from './state/user/user.effects';
 import { progressFeature } from './state/progress/progress.feature';
+import { ProgressEffects } from './state/progress/progress.effects';
 import { uiFeature } from './state/ui/ui.feature';
+import { authInterceptor } from './core/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -27,7 +30,7 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([requestContextInterceptor]),
+      withInterceptors([requestContextInterceptor, authInterceptor]),
     ),
 
     provideStore(),
@@ -35,7 +38,7 @@ export const appConfig: ApplicationConfig = {
     provideState(userFeature),
     provideState(progressFeature),
     provideState(uiFeature),
-    provideEffects([AuthEffects]),
+    provideEffects([AuthEffects, UserEffects, ProgressEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
 };

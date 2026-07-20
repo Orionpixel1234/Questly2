@@ -1,6 +1,2 @@
-export interface SubjectProgress {
-  subjectId: string;
-  label: string;
-  exp: number;
-  goal: number;
-}
+// Mirrors GET /progress/me's response.
+export type { SubjectProgress } from '@questly/shared-types';

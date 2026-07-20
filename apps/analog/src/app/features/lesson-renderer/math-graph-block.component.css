@@ -1,0 +1,12 @@
+.math-graph-block {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  background: var(--color-bg-elevated);
+}
+
+.math-graph-block__error {
+  color: var(--color-danger);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}

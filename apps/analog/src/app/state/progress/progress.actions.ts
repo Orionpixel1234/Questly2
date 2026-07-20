@@ -7,7 +7,5 @@ export const ProgressActions = createActionGroup({
     'Load Progress': emptyProps(),
     'Load Progress Success': props<{ progress: SubjectProgress[] }>(),
     'Load Progress Failure': props<{ error: string }>(),
-    'Add Exp': props<{ subjectId: string; amount: number }>(),
-    'Set Goal': props<{ subjectId: string; goal: number }>(),
   },
 });

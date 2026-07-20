@@ -15,12 +15,4 @@ export class ProgressFacade {
   loadProgress(): void {
     this.store.dispatch(ProgressActions.loadProgress());
   }
-
-  addExp(subjectId: string, amount: number): void {
-    this.store.dispatch(ProgressActions.addExp({ subjectId, amount }));
-  }
-
-  setGoal(subjectId: string, goal: number): void {
-    this.store.dispatch(ProgressActions.setGoal({ subjectId, goal }));
-  }
 }

@@ -3,7 +3,9 @@
 
 generator client {
   provider     = "prisma-client"
-  output       = "../generated/prisma"
+  // Under src/, not a sibling of it — a sibling would sit outside
+  // tsconfig's rootDir and break `nest build`'s output layout.
+  output       = "../src/generated/prisma"
   // The rest of this NestJS app (Jest, `nest build`) is CommonJS; without
   // this the generator defaults to ESM output and every consumer breaks
   // with "exports is not defined in ES module scope".
@@ -31,6 +33,104 @@ model User {
   role         Role     @relation(fields: [roleId], references: [id])
   subjects     String[]
   degreeTrack  String?
+  // 'studying' | 'teaching' from the onboarding questionnaire — validated
+  // at the API layer (class-validator), not a DB enum, to match how
+  // `subjects` is already free text rather than a foreign key.
+  goalType     String?
+  goals        Goal[]
+  lessons      Lesson[]
+  classes      Class[]
+  enrollments  Enrollment[]
+  completions  LessonCompletion[]
+  calendarEvents CalendarEvent[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// Per-subject targets chosen at signup, now also the live EXP ledger for
+// that subject (see LessonCompletion — completing a lesson increments the
+// matching Goal.exp, auto-creating one with a default target if the
+// student never explicitly set a goal for that subject).
+model Goal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  subject   String
+  target    Int
+  exp       Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, subject])
+}
+
+// One row per (student, lesson) they've marked complete — the gate that
+// makes "mark complete" idempotent (completing the same lesson twice
+// shouldn't double-award EXP).
+model LessonCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  expAwarded  Int
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+}
+
+// Phase 2 stub: title/description only. The actual markup language content
+// field lands in Phase 3 — this exists now so the Author panel has real
+// CRUD to work with and the Student panel has something to browse.
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  subject     String
+  // LessonML source — see LESSON_DSL.md at the repo root for the grammar.
+  content     String   @default("")
+  published   Boolean  @default(false)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  completions LessonCompletion[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Class {
+  id             String          @id @default(cuid())
+  name           String
+  subject        String
+  educatorId     String
+  educator       User            @relation(fields: [educatorId], references: [id])
+  enrollments    Enrollment[]
+  calendarEvents CalendarEvent[]
+  createdAt      DateTime        @default(now())
+}
+
+// A personal calendar entry — "arrange your preferred classes in a neat
+// organized calendar" from the product brief. Scoped to the owning user,
+// not shared/global; optionally linked to a Class for context (which
+// subject/educator it's for) but the schedule itself is per-student.
+model CalendarEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  subject   String?
+  classId   String?
+  class     Class?   @relation(fields: [classId], references: [id])
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime @default(now())
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([classId, studentId])
 }

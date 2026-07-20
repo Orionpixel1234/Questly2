@@ -1,0 +1,40 @@
+.author-page__editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+@media (max-width: 56rem) {
+  .author-page__editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+.author-page__content-input {
+  min-height: 20rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.author-page__preview {
+  min-height: 20rem;
+  max-height: 32rem;
+  overflow-y: auto;
+}
+
+.author-page__preview-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.author-page__actions {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+}
