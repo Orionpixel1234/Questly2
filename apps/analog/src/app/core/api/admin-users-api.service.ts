@@ -23,4 +23,20 @@ export class AdminUsersApiService {
       { withCredentials: true },
     );
   }
+
+  ban(id: string, reason?: string) {
+    return this.http.patch<AdminUserSummary>(
+      `${this.base}/${id}/ban`,
+      { reason },
+      { withCredentials: true },
+    );
+  }
+
+  unban(id: string) {
+    return this.http.patch<AdminUserSummary>(
+      `${this.base}/${id}/unban`,
+      {},
+      { withCredentials: true },
+    );
+  }
 }

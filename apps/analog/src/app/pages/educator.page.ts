@@ -9,6 +9,7 @@ import { ClassesApiService } from '../core/api/classes-api.service';
 import { LoadingStateComponent } from '../shared/loading-state/loading-state.component';
 import { ErrorStateComponent } from '../shared/error-state/error-state.component';
 import { LeaderboardComponent } from '../features/leaderboard/leaderboard.component';
+import { LessonEditorComponent } from '../features/lesson-editor/lesson-editor.component';
 
 export const routeMeta = defineRouteMeta({
   canActivate: [authGuard, roleGuard],
@@ -17,7 +18,13 @@ export const routeMeta = defineRouteMeta({
 
 @Component({
   selector: 'app-educator-page',
-  imports: [ReactiveFormsModule, LoadingStateComponent, ErrorStateComponent, LeaderboardComponent],
+  imports: [
+    ReactiveFormsModule,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    LeaderboardComponent,
+    LessonEditorComponent,
+  ],
   template: `
     <div class="panel-page">
       <section class="panel panel-page__section">
@@ -110,6 +117,8 @@ export const routeMeta = defineRouteMeta({
           }
         </section>
       }
+
+      <app-lesson-editor />
 
       <app-leaderboard />
     </div>

@@ -3,7 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EXP_PER_LESSON, levelForExp } from '@questly/shared-types';
+import {
+  EXP_PER_LESSON,
+  STARDUST_PER_LESSON,
+  levelForExp,
+} from '@questly/shared-types';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -30,7 +34,7 @@ export class ProgressService {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
     });
-    if (!lesson || !lesson.published) {
+    if (!lesson || lesson.status !== 'PUBLISHED') {
       throw new NotFoundException('Lesson not found');
     }
 
@@ -54,6 +58,14 @@ export class ProgressService {
           exp: EXP_PER_LESSON,
         },
         update: { exp: { increment: EXP_PER_LESSON } },
+      }),
+      // Stardust — the game's currency — is awarded here and only here, in
+      // the same transaction as the real completion, so the game can never
+      // get ahead of (or fall behind) actual lesson progress.
+      this.prisma.gameProfile.upsert({
+        where: { userId },
+        create: { userId, stardust: STARDUST_PER_LESSON },
+        update: { stardust: { increment: STARDUST_PER_LESSON } },
       }),
     ]);
 

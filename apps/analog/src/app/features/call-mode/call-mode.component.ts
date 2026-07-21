@@ -1,6 +1,8 @@
 import {
   Component,
   DestroyRef,
+  ElementRef,
+  HostListener,
   PLATFORM_ID,
   afterNextRender,
   computed,
@@ -8,6 +10,7 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { extractSpeechSegments, parseLesson } from '@questly/lesson-dsl';
@@ -19,7 +22,14 @@ import { extractSpeechSegments, parseLesson } from '@questly/lesson-dsl';
 @Component({
   selector: 'app-call-mode',
   template: `
-    <div class="call-mode" role="dialog" aria-modal="true" [attr.aria-label]="'Call: ' + title()">
+    <div
+      #dialog
+      class="call-mode"
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+      [attr.aria-label]="'Call: ' + title()"
+    >
       <div class="call-mode__avatar" [class.call-mode__avatar--speaking]="speaking()"></div>
       <p class="call-mode__title">{{ title() }}</p>
       <p class="call-mode__status">
@@ -75,6 +85,7 @@ export class CallModeComponent {
 
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialogRef = viewChild<ElementRef<HTMLElement>>('dialog');
 
   // computed, not eager construction — `source` is a required input and
   // isn't bound yet when this class's constructor body runs.
@@ -90,12 +101,18 @@ export class CallModeComponent {
 
   constructor() {
     afterNextRender(() => {
+      this.dialogRef()?.nativeElement.focus();
       if (this.isBrowser && this.segments().length > 0) this.speak(0);
     });
 
     this.destroyRef.onDestroy(() => {
       if (this.isBrowser) window.speechSynthesis.cancel();
     });
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    this.endCall();
   }
 
   private speak(index: number): void {

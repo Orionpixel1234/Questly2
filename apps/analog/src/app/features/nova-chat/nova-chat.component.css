@@ -1,0 +1,116 @@
+:host {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.nova-chat__toggle {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: none;
+  background: radial-gradient(circle, var(--color-accent), var(--color-accent-secondary));
+  color: var(--color-accent-contrast);
+  font-size: var(--text-xl);
+  cursor: pointer;
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--color-accent) 65%, transparent);
+}
+
+.nova-chat__toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.nova-chat__panel {
+  width: 20rem;
+  max-width: calc(100vw - var(--space-8));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 28rem;
+}
+
+.nova-chat__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nova-chat__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.nova-chat__close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.nova-chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 8rem;
+}
+
+.nova-chat__empty {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.nova-chat__message {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 0.75rem;
+  font-size: var(--text-sm);
+  max-width: 85%;
+  white-space: pre-wrap;
+}
+
+.nova-chat__message--user {
+  align-self: flex-end;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.nova-chat__message--assistant {
+  align-self: flex-start;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.nova-chat__message--pending {
+  color: var(--color-text-muted);
+}
+
+.nova-chat__form {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.nova-chat__form input {
+  flex: 1;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: var(--space-2) var(--space-3);
+}
+
+.nova-chat__form input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}

@@ -37,12 +37,19 @@ model User {
   // at the API layer (class-validator), not a DB enum, to match how
   // `subjects` is already free text rather than a foreign key.
   goalType     String?
+  // Admin moderation. Checked at login and token refresh (see AuthService) —
+  // not at every JwtStrategy.validate, so a banned user's already-issued
+  // access token stays valid until it expires (max JWT_ACCESS_TTL, 15m default).
+  banned       Boolean  @default(false)
+  bannedReason String?
   goals        Goal[]
   lessons      Lesson[]
   classes      Class[]
   enrollments  Enrollment[]
   completions  LessonCompletion[]
   calendarEvents CalendarEvent[]
+  gameProfile  GameProfile?
+  agentLogs    AgentActivityLog[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -78,22 +85,32 @@ model LessonCompletion {
   @@unique([userId, lessonId])
 }
 
-// Phase 2 stub: title/description only. The actual markup language content
-// field lands in Phase 3 — this exists now so the Author panel has real
-// CRUD to work with and the Student panel has something to browse.
+// DRAFT: author/educator still editing, invisible to everyone else.
+// PENDING_REVIEW: submitted, waiting on an admin.
+// PUBLISHED: approved, visible in the catalog and completable.
+// REJECTED: admin declined it (see rejectionNote); author can edit and resubmit.
+enum LessonStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
 model Lesson {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   description String
   subject     String
   // LessonML source — see LESSON_DSL.md at the repo root for the grammar.
-  content     String   @default("")
-  published   Boolean  @default(false)
+  content     String       @default("")
+  status      LessonStatus @default(DRAFT)
+  rejectionNote String?
   authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
+  author      User         @relation(fields: [authorId], references: [id])
   completions LessonCompletion[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  agentLogs   AgentActivityLog[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Class {
@@ -122,6 +139,43 @@ model CalendarEvent {
   startTime DateTime
   endTime   DateTime
   createdAt DateTime @default(now())
+}
+
+// The "game" layer — deliberately has no data of its own beyond a currency
+// and a cosmetic tier. Its map (which systems/nodes exist, which are
+// claimed) is always derived live from real Lesson/LessonCompletion rows
+// (see GameService.starMap), so there's nothing here to fake progress with.
+model GameProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  stardust  Int      @default(0)
+  shipTier  Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+enum AgentEventStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Audit trail for POST /api/v1/agent/progress (external agents, e.g. a
+// Zapier AI Agent running a tutoring conversation against a lesson). Every
+// call is logged here regardless of outcome; a COMPLETED event additionally
+// drives the real completion path (ProgressService.completeLesson) so EXP
+// and Stardust go through the exact same rules as an in-app completion —
+// this table itself never awards anything on its own.
+model AgentActivityLog {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id])
+  lessonId        String
+  lesson          Lesson           @relation(fields: [lessonId], references: [id])
+  status          AgentEventStatus
+  userResponses   Json?
+  metadata        Json?
+  clientTimestamp DateTime?
+  createdAt       DateTime         @default(now())
 }
 
 model Enrollment {

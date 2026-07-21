@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
@@ -47,7 +51,8 @@ export class CalendarService {
   private async requireOwned(id: string, userId: string) {
     const event = await this.prisma.calendarEvent.findUnique({ where: { id } });
     if (!event) throw new NotFoundException('Calendar event not found');
-    if (event.userId !== userId) throw new ForbiddenException('Not your calendar event');
+    if (event.userId !== userId)
+      throw new ForbiddenException('Not your calendar event');
     return event;
   }
 }

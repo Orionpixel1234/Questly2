@@ -25,7 +25,10 @@ export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
 
   @Post()
-  create(@Req() req: Request & { user: RequestUser }, @Body() dto: CreateCalendarEventDto) {
+  create(
+    @Req() req: Request & { user: RequestUser },
+    @Body() dto: CreateCalendarEventDto,
+  ) {
     return this.calendarService.create(req.user.userId, dto);
   }
 

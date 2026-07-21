@@ -52,6 +52,7 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatches)
       throw new UnauthorizedException('Invalid credentials');
+    if (user.banned) throw new UnauthorizedException('This account is banned');
 
     return toAuthenticatedUser(user);
   }
@@ -111,7 +112,10 @@ export class AuthService {
       where: { id: userId },
       include: { role: true },
     });
-    if (!user) return null;
+    // A banned user's refresh token was already deleted above (single-use),
+    // so this cuts them off within one JWT_ACCESS_TTL window (15m default)
+    // of being banned, without needing to check on every single request.
+    if (!user || user.banned) return null;
 
     return this.issueTokens(toAuthenticatedUser(user));
   }

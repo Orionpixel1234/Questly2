@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
+// No `status` field here either — see CreateLessonDto for why.
 export class UpdateLessonDto {
   @ApiPropertyOptional()
   @IsOptional()
@@ -22,9 +23,4 @@ export class UpdateLessonDto {
   @IsOptional()
   @IsString()
   content?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  published?: boolean;
 }

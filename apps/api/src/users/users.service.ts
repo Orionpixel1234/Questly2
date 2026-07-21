@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { BanUserDto } from './dto/ban-user.dto';
 
 // Every read here omits passwordHash explicitly — it must never round-trip
 // over the API even though it's a real column on the model.
@@ -13,6 +14,8 @@ const PUBLIC_USER_SELECT = {
   subjects: true,
   degreeTrack: true,
   goalType: true,
+  banned: true,
+  bannedReason: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -25,6 +28,8 @@ type RawUser = {
   subjects: string[];
   degreeTrack: string | null;
   goalType: string | null;
+  banned: boolean;
+  bannedReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -79,6 +84,24 @@ export class UsersService {
     const user = await this.prisma.user.update({
       where: { id },
       data: { roleId: role.id },
+      select: PUBLIC_USER_SELECT,
+    });
+    return toPublicUser(user);
+  }
+
+  async ban(id: string, dto: BanUserDto) {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { banned: true, bannedReason: dto.reason ?? null },
+      select: PUBLIC_USER_SELECT,
+    });
+    return toPublicUser(user);
+  }
+
+  async unban(id: string) {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { banned: false, bannedReason: null },
       select: PUBLIC_USER_SELECT,
     });
     return toPublicUser(user);

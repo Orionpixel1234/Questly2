@@ -8,6 +8,9 @@ import { ClassesModule } from './classes/classes.module';
 import { ProgressModule } from './progress/progress.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { AiModule } from './ai/ai.module';
+import { GameModule } from './game/game.module';
+import { AgentModule } from './agent/agent.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
@@ -23,6 +26,9 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     ProgressModule,
     CalendarModule,
     MetricsModule,
+    AiModule,
+    GameModule,
+    AgentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

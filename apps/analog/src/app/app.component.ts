@@ -3,6 +3,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { StarfieldBackgroundComponent } from './shared/starfield-background/starfield-background.component';
 import { ThemeToggleComponent } from './shared/theme/theme-toggle.component';
 import { SidebarComponent } from './shared/sidebar/sidebar.component';
+import { NovaChatComponent } from './features/nova-chat/nova-chat.component';
 import { AuthFacade } from './state/auth/auth.facade';
 
 @Component({
@@ -13,6 +14,7 @@ import { AuthFacade } from './state/auth/auth.facade';
     StarfieldBackgroundComponent,
     ThemeToggleComponent,
     SidebarComponent,
+    NovaChatComponent,
   ],
   template: `
     <app-starfield-background />
@@ -42,6 +44,10 @@ import { AuthFacade } from './state/auth/auth.facade';
         <router-outlet />
       </main>
     </div>
+
+    @if (auth.isAuthenticated()) {
+      <app-nova-chat />
+    }
   `,
   styleUrl: './app.component.css',
 })

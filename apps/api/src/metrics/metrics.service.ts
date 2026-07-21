@@ -15,7 +15,7 @@ export class MetricsService {
     const [
       usersByRole,
       totalLessons,
-      publishedLessons,
+      lessonsByStatus,
       totalClasses,
       totalEnrollments,
       totalCompletions,
@@ -25,7 +25,7 @@ export class MetricsService {
     ] = await Promise.all([
       this.prisma.user.groupBy({ by: ['roleId'], _count: { _all: true } }),
       this.prisma.lesson.count(),
-      this.prisma.lesson.count({ where: { published: true } }),
+      this.prisma.lesson.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.class.count(),
       this.prisma.enrollment.count(),
       this.prisma.lessonCompletion.count(),
@@ -34,7 +34,9 @@ export class MetricsService {
       this.prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     ]);
 
-    const roles = await this.prisma.role.findMany({ select: { id: true, name: true } });
+    const roles = await this.prisma.role.findMany({
+      select: { id: true, name: true },
+    });
     const roleNameById = new Map(roles.map((role) => [role.id, role.name]));
     const usersByRoleName: Record<string, number> = {
       admin: 0,
@@ -46,7 +48,14 @@ export class MetricsService {
       const name = roleNameById.get(row.roleId);
       if (name) usersByRoleName[name] = row._count._all;
     }
-    const totalUsers = Object.values(usersByRoleName).reduce((sum, n) => sum + n, 0);
+    const totalUsers = Object.values(usersByRoleName).reduce(
+      (sum, n) => sum + n,
+      0,
+    );
+
+    const countByStatus = new Map(
+      lessonsByStatus.map((row) => [row.status, row._count._all]),
+    );
 
     return {
       totalUsers,
@@ -54,8 +63,10 @@ export class MetricsService {
       newUsers7d,
       newUsers30d,
       totalLessons,
-      publishedLessons,
-      draftLessons: totalLessons - publishedLessons,
+      publishedLessons: countByStatus.get('PUBLISHED') ?? 0,
+      draftLessons: countByStatus.get('DRAFT') ?? 0,
+      pendingReviewLessons: countByStatus.get('PENDING_REVIEW') ?? 0,
+      rejectedLessons: countByStatus.get('REJECTED') ?? 0,
       totalClasses,
       totalEnrollments,
       totalCompletions,

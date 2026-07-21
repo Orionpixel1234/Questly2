@@ -17,7 +17,14 @@ const PADDING = 32;
     @if (compileError(); as message) {
       <p class="math-graph-block__error">Invalid function "{{ fn() }}": {{ message }}</p>
     } @else {
-      <canvas #canvas class="math-graph-block" width="640" height="360"></canvas>
+      <canvas
+        #canvas
+        class="math-graph-block"
+        width="640"
+        height="360"
+        role="img"
+        [attr.aria-label]="'Graph of y = ' + fn() + ' from x = ' + xmin() + ' to x = ' + xmax()"
+      ></canvas>
     }
   `,
   styleUrl: './math-graph-block.component.css',

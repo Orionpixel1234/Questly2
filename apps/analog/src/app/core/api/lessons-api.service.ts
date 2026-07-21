@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import type {
   CreateLessonPayload,
   Lesson,
+  LessonReviewItem,
   UpdateLessonPayload,
 } from '@questly/shared-types';
 import { API_BASE_URL } from '../api-base-url.token';
@@ -39,5 +40,32 @@ export class LessonsApiService {
 
   remove(id: string) {
     return this.http.delete<void>(`${this.base}/${id}`, { withCredentials: true });
+  }
+
+  submit(id: string) {
+    return this.http.post<Lesson>(`${this.base}/${id}/submit`, {}, {
+      withCredentials: true,
+    });
+  }
+
+  // Admin review queue
+  pending() {
+    return this.http.get<LessonReviewItem[]>(`${this.base}/pending`, {
+      withCredentials: true,
+    });
+  }
+
+  approve(id: string) {
+    return this.http.post<Lesson>(`${this.base}/${id}/approve`, {}, {
+      withCredentials: true,
+    });
+  }
+
+  reject(id: string, note?: string) {
+    return this.http.post<Lesson>(
+      `${this.base}/${id}/reject`,
+      { note },
+      { withCredentials: true },
+    );
   }
 }

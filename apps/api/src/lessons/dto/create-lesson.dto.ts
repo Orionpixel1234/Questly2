@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
+// No `published`/`status` field here on purpose — every new lesson starts
+// DRAFT. Status only ever changes via the dedicated submit/approve/reject
+// endpoints, so "published" can't be set by just posting a flag.
 export class CreateLessonDto {
   @ApiProperty()
   @IsString()
@@ -19,9 +22,4 @@ export class CreateLessonDto {
   @IsOptional()
   @IsString()
   content?: string;
-
-  @ApiPropertyOptional({ default: false })
-  @IsOptional()
-  @IsBoolean()
-  published?: boolean;
 }

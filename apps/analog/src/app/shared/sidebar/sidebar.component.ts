@@ -39,6 +39,9 @@ const PANEL_ROUTE_BY_ROLE: Record<UserRole, string> = {
               <a class="sidebar__panel-link btn btn-secondary" routerLink="/calendar">
                 Calendar
               </a>
+              <a class="sidebar__panel-link btn btn-secondary" routerLink="/game">
+                Game
+              </a>
             </div>
 
             <div class="sidebar__section">

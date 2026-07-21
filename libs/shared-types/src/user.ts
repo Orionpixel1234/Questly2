@@ -30,6 +30,8 @@ export interface AuthUser {
 // fields only the admin panel needs.
 export interface AdminUserSummary extends UserProfile {
   goalType: GoalType | null;
+  banned: boolean;
+  bannedReason: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -13,6 +13,7 @@ import type { Request } from 'express';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { BanUserDto } from './dto/ban-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -73,5 +74,21 @@ export class UsersController {
   @Patch(':id/role')
   updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.usersService.updateRole(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @Patch(':id/ban')
+  ban(@Param('id') id: string, @Body() dto: BanUserDto) {
+    return this.usersService.ban(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @Patch(':id/unban')
+  unban(@Param('id') id: string) {
+    return this.usersService.unban(id);
   }
 }
