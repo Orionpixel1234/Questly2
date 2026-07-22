@@ -56,40 +56,11 @@ $orbit: (
   700: #146b79
 );
 
-$daylight: (
-  50: #f6f7fb,
-  // default background, light theme
-  100: #ffffff,
-  // surface
-  200: #e7eaf3,
-  // border
-  300: #d3d8e8,
-  // border, strong
-  400: #b7beda, // reserved for stronger dividers
-);
-
-$ink: (
-  900: #10131d,
-  // primary text on light
-  700: #333b4f,
-  // secondary text on light
-  500: #5b6478,
-  // muted text on light
-  400: #7c879c, // disabled text on light
-);
-
 $semantic-dark: (
   success: #3ed98a,
   warning: #f0c419,
   danger: #ff5c5c,
   info: map.get($orbit, 500),
-);
-
-$semantic-light: (
-  success: #1fae68,
-  warning: #b8860b,
-  danger: #e23636,
-  info: map.get($orbit, 700),
 );
 
 // ---------------------------------------------------------------------------
@@ -127,35 +98,41 @@ $semantic-light: (
   --color-focus-ring: #{map.get($orbit, 400)};
 }
 
+// Light mode uses the "Mathly" palette (a warm cream/terracotta theme,
+// ported 1:1 from that reference app's oklch tokens) instead of Questly's
+// own cool-toned $daylight/$ink ramps — dark mode is unaffected and still
+// uses $void/$mist/$signal/$orbit above. Written as raw oklch() values
+// (not $daylight/$ink map lookups) since they're a distinct palette, not a
+// remix of Questly's own ramps.
 :root[data-theme='light'] {
-  --color-bg: #{map.get($daylight, 50)};
-  --color-bg-elevated: #{map.get($daylight, 100)};
-  --color-surface: #{map.get($daylight, 100)};
-  --color-surface-raised: #{map.get($daylight, 100)};
-  --color-surface-overlay: #{map.get($daylight, 100)};
-  --color-border: #{map.get($daylight, 200)};
-  --color-border-strong: #{map.get($daylight, 300)};
+  --color-bg: oklch(0.985 0.012 75);
+  --color-bg-elevated: oklch(1 0 0);
+  --color-surface: oklch(1 0 0);
+  --color-surface-raised: oklch(1 0 0);
+  --color-surface-overlay: oklch(1 0 0);
+  --color-border: oklch(0.9 0.015 65);
+  --color-border-strong: oklch(0.8 0.02 65);
 
-  --color-text-primary: #{map.get($ink, 900)};
-  --color-text-secondary: #{map.get($ink, 700)};
-  --color-text-muted: #{map.get($ink, 500)};
-  --color-text-disabled: #{map.get($ink, 400)};
+  --color-text-primary: oklch(0.2 0.03 40);
+  --color-text-secondary: oklch(0.35 0.035 45);
+  --color-text-muted: oklch(0.5 0.03 55);
+  --color-text-disabled: oklch(0.68 0.025 60);
 
-  --color-accent: #{map.get($signal, 700)};
-  --color-accent-hover: #{map.get($signal, 600)};
-  --color-accent-active: #{map.get($signal, 800)};
-  --color-accent-contrast: #ffffff;
+  --color-accent: oklch(0.62 0.17 35);
+  --color-accent-hover: oklch(0.67 0.17 35);
+  --color-accent-active: oklch(0.56 0.17 35);
+  --color-accent-contrast: oklch(0.99 0.01 75);
 
-  --color-accent-secondary: #{map.get($orbit, 700)};
-  --color-accent-secondary-hover: #{map.get($orbit, 600)};
-  --color-accent-secondary-active: #{map.get($orbit, 700)};
+  --color-accent-secondary: oklch(0.68 0.15 40);
+  --color-accent-secondary-hover: oklch(0.73 0.15 40);
+  --color-accent-secondary-active: oklch(0.6 0.15 40);
 
-  --color-success: #{map.get($semantic-light, success)};
-  --color-warning: #{map.get($semantic-light, warning)};
-  --color-danger: #{map.get($semantic-light, danger)};
-  --color-info: #{map.get($semantic-light, info)};
+  --color-success: oklch(0.68 0.15 155);
+  --color-warning: oklch(0.78 0.15 75);
+  --color-danger: oklch(0.6 0.22 22);
+  --color-info: oklch(0.6 0.18 260);
 
-  --color-focus-ring: #{map.get($orbit, 600)};
+  --color-focus-ring: oklch(0.68 0.15 40);
 }
 
 // ---------------------------------------------------------------------------

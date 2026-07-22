@@ -1,0 +1,172 @@
+.outpost__resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.outpost__subheading {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  margin: 0 0 var(--space-3);
+}
+
+.outpost__recipes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.outpost__recipe-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 0.625rem;
+  background: var(--color-surface-raised);
+}
+
+.outpost__recipe-icon {
+  font-size: var(--text-xl);
+  flex-shrink: 0;
+}
+
+.outpost__recipe-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.outpost__recipe-body h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.outpost__recipe-desc {
+  margin: 0.125rem 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.outpost__cost {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.outpost__stock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.outpost__stock-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface-raised);
+  font-size: var(--text-sm);
+}
+
+.outpost__grid {
+  display: grid;
+  gap: 3px;
+  max-width: 28rem;
+  margin: 0 0 var(--space-4);
+}
+
+.outpost__cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-md);
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg-elevated);
+  cursor: default;
+  padding: 0;
+}
+
+.outpost__cell--occupied {
+  background: var(--color-surface-raised);
+  border-color: var(--color-accent);
+}
+
+.outpost__cell--targetable {
+  cursor: pointer;
+  border-color: var(--color-accent-secondary);
+  background: color-mix(in srgb, var(--color-accent-secondary) 10%, transparent);
+}
+
+.outpost__cell--ready {
+  cursor: pointer;
+  position: relative;
+  animation: outpost-station-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes outpost-station-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 0%, transparent);
+  }
+}
+
+.outpost__cell-cooldown {
+  position: absolute;
+  inset: auto 0 2px 0;
+  font-size: 0.55rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.outpost__collect-toast {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  width: fit-content;
+}
+
+.outpost__quests {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.outpost__quest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: 0.625rem;
+}
+
+.outpost__quest-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.outpost__quest-body h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}

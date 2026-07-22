@@ -4,8 +4,15 @@ export class Cursor {
   pos = 0;
   line = 1;
   column = 1;
+  private readonly source: string;
 
-  constructor(private readonly source: string) {}
+  // No TS parameter-property shorthand here — apps/api's dev server runs
+  // this file directly via Node's native TypeScript strip-only mode, which
+  // erases type annotations but can't transform parameter properties (they
+  // require real codegen, not just stripping) — ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
+  constructor(source: string) {
+    this.source = source;
+  }
 
   eof(): boolean {
     return this.pos >= this.source.length;
@@ -52,11 +59,12 @@ export class Cursor {
 }
 
 export class ParseException extends Error {
-  constructor(
-    message: string,
-    readonly line: number,
-    readonly column: number,
-  ) {
+  readonly line: number;
+  readonly column: number;
+
+  constructor(message: string, line: number, column: number) {
     super(message);
+    this.line = line;
+    this.column = column;
   }
 }

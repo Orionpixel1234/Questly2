@@ -24,7 +24,20 @@ function segmentsForBlock(block: LessonBlock): string[] {
     }
     case 'list':
       return block.items.map((item) => inlineToText(item.children));
+    case 'hint':
+      return [`Hint: ${inlineToText(block.children)}`];
+    case 'summary':
+      return [inlineToText(block.children)];
+    case 'mcq':
+    case 'checkbox':
+    case 'truefalse':
+    case 'shortAnswer':
+    case 'numeric':
+    case 'openResponse':
+      return [`Question: ${block.question}`];
     case 'image':
+    case 'video':
+    case 'divider':
     case 'math':
     case 'mathGraph':
     case 'molecule':

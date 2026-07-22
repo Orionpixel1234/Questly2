@@ -50,6 +50,10 @@ model User {
   calendarEvents CalendarEvent[]
   gameProfile  GameProfile?
   agentLogs    AgentActivityLog[]
+  resourceBalances ResourceBalance[]
+  craftedStock     CraftedItemStock[]
+  outpostBuildings OutpostBuilding[]
+  questClaims      QuestClaim[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -72,14 +76,30 @@ model Goal {
 
 // One row per (student, lesson) they've marked complete — the gate that
 // makes "mark complete" idempotent (completing the same lesson twice
-// shouldn't double-award EXP).
+// shouldn't double-award EXP). Also doubles as the submission/grading
+// record for lessons with quiz blocks (see libs/lesson-dsl's grading.ts):
+// answers/autoScore/autoTotal are set at completion time; manualScore/
+// feedback/gradedAt are filled in later by an Author/Educator/Admin for any
+// OpenResponse blocks. Plain content-only lessons (no quiz blocks) just
+// leave all of these null — completion still works exactly as before.
 model LessonCompletion {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
   lessonId    String
-  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  lesson      Lesson    @relation(fields: [lessonId], references: [id])
   expAwarded  Int
+  // Keyed by block index (see grading.ts) — the student's raw submitted
+  // answers, kept even after grading so a teacher can see exactly what was
+  // submitted.
+  answers       Json?
+  autoScore     Int?
+  autoTotal     Int?
+  manualScore   Int?
+  manualTotal   Int?
+  // Keyed by block index — per-OpenResponse-question written feedback.
+  feedback      Json?
+  gradedAt      DateTime?
   completedAt DateTime @default(now())
 
   @@unique([userId, lessonId])
@@ -176,6 +196,72 @@ model AgentActivityLog {
   metadata        Json?
   clientTimestamp DateTime?
   createdAt       DateTime         @default(now())
+}
+
+// Outpost — mining/crafting/building/quests (see @questly/shared-types'
+// outpost.ts for the recipe/quest catalogs and resourceForSubject()).
+// Nothing here can be earned except through ProgressService.completeLesson
+// (mining) or by spending mined resources (crafting/building) — same
+// "derived from real progress" rule as GameProfile/Star Chart above.
+enum ResourceType {
+  CRYSTAL
+  ALLOY
+  BIOMASS
+  DATACORE
+  FUEL
+}
+
+model ResourceBalance {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  resource  ResourceType
+  amount    Int          @default(0)
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, resource])
+}
+
+// `stock` is what's available to place right now; `totalCrafted` is a
+// lifetime counter that never decreases (even once placed) — quests like
+// "craft an Alloy Foundry" check totalCrafted, not stock, so placing a
+// building doesn't retroactively un-satisfy a crafting quest.
+model CraftedItemStock {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  buildingKey  String
+  stock        Int      @default(0)
+  totalCrafted Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, buildingKey])
+}
+
+// Append-only on purpose (no "pick up and move" in v1) — placements double
+// as the lifetime record quest objectives like "place a Command Center"
+// count against.
+model OutpostBuilding {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  buildingKey     String
+  x               Int
+  y               Int
+  placedAt        DateTime  @default(now())
+  lastCollectedAt DateTime?
+
+  @@unique([userId, x, y])
+}
+
+model QuestClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  questKey  String
+  claimedAt DateTime @default(now())
+
+  @@unique([userId, questKey])
 }
 
 model Enrollment {

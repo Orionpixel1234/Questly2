@@ -1,0 +1,90 @@
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  backdrop-filter: blur(16px);
+  padding: var(--space-4);
+}
+
+.station-game {
+  width: 100%;
+  max-width: 28rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.station-game__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.station-game__header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.station-game__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.station-game__track {
+  position: relative;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.station-game__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  border-left: 2px solid var(--color-accent);
+  border-right: 2px solid var(--color-accent);
+}
+
+.station-game__marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 4px;
+  margin-left: -2px;
+  background: var(--color-accent-secondary);
+  box-shadow: 0 0 8px var(--color-accent-secondary);
+}
+
+.station-game__lock {
+  align-self: center;
+  min-width: 10rem;
+}
+
+.station-game__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.station-game__score {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}

@@ -1,0 +1,392 @@
+.game-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.game-shell__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.game-shell__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.game-shell__counter {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---------- Hub ---------- */
+
+.mini-games__topic-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.mini-games__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.mini-games__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-5);
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mini-games__card:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+.mini-games__card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mini-games__card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.mini-games__card-desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Question card (Bomb Blast / Jumping Jacks) ---------- */
+
+.quiz-timer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 0.625rem;
+  border: 1px solid var(--color-border);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.quiz-timer--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.quiz-question-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.quiz-question-card--right {
+  border-color: var(--color-success);
+}
+
+.quiz-question-card--wrong {
+  border-color: var(--color-danger);
+}
+
+.quiz-question-card__row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.quiz-question-card__row input {
+  flex: 1;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: var(--space-2) var(--space-3);
+}
+
+.quiz-feedback--right {
+  color: var(--color-success);
+  font-weight: 600;
+  margin: 0;
+}
+
+.quiz-feedback--wrong {
+  color: var(--color-danger);
+  font-weight: 600;
+  margin: 0;
+}
+
+.quiz-result {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: var(--space-8);
+  text-align: center;
+  border-radius: 1rem;
+  border: 2px solid var(--color-border);
+}
+
+.quiz-result--win {
+  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+
+.quiz-result--lose {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+}
+
+/* ---------- Flashcards ---------- */
+
+.flashcard-wrap {
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.flashcard {
+  position: relative;
+  height: 18rem;
+  cursor: pointer;
+  perspective: 1200px;
+}
+
+.flashcard__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+
+.flashcard__inner--flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  text-align: center;
+  border-radius: 1.5rem;
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface-raised);
+  backface-visibility: hidden;
+}
+
+.flashcard__face--back {
+  border-color: var(--color-success);
+  transform: rotateY(180deg);
+}
+
+.flashcard__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.flashcard__text {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.flashcard-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* ---------- Memory match ---------- */
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 32rem) {
+  .memory-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.memory-card {
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-raised);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.memory-card--hidden {
+  color: transparent;
+  font-size: var(--text-2xl);
+}
+
+.memory-card--hidden::after {
+  content: '?';
+  color: var(--color-text-muted);
+}
+
+.memory-card--matched {
+  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+}
+
+.memory-card--question {
+  border-color: var(--color-accent);
+}
+
+.memory-card--answer {
+  border-color: var(--color-accent-secondary);
+}
+
+/* ---------- Bomb Blast ---------- */
+
+.bomb-blast__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 56rem) {
+  .bomb-blast__grid {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+.bomb-blast__question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bomb-blast__wall-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.brick-wall {
+  display: grid;
+  gap: 2px;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: var(--space-2);
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.brick {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  border: none;
+  background: linear-gradient(to bottom right, #fb923c, #ef4444);
+  cursor: pointer;
+}
+
+.brick--dead {
+  background: transparent;
+  visibility: hidden;
+}
+
+.brick--locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Jumping Jacks ---------- */
+
+.platform-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 2px solid var(--color-border);
+  padding: var(--space-4);
+}
+
+.platform-track__row {
+  display: grid;
+  gap: 3px;
+}
+
+.platform-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.platform-tile__runner {
+  position: absolute;
+  top: 0.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--text-lg);
+  transition: transform 0.2s;
+}
+
+.platform-tile__runner--airborne {
+  transform: translate(-50%, -2rem);
+}
+
+.platform-tile__ground {
+  height: 1rem;
+  width: 100%;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-success), color-mix(in srgb, var(--color-success) 60%, black));
+}
+
+.platform-tile__ground--gap {
+  background: transparent;
+}
+
+.platform-tile__ground--goal {
+  background: linear-gradient(to top, #f59e0b, #fde047);
+}
+
+.jumping-jacks__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}

@@ -1,0 +1,101 @@
+:host {
+  display: block;
+}
+
+.quiz-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin: 0 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: 0.625rem;
+  background: var(--color-surface-raised);
+}
+
+.quiz-block__question {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.quiz-block__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.quiz-block__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.quiz-block__option--selected {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.quiz-block__option--correct {
+  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+}
+
+.quiz-block__option--incorrect {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+.quiz-block__truefalse {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.quiz-block__input {
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: var(--space-2) var(--space-3);
+}
+
+.quiz-block__input--wide {
+  width: 100%;
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.quiz-block__feedback {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.quiz-block__feedback--correct {
+  color: var(--color-success);
+}
+
+.quiz-block__feedback--incorrect {
+  color: var(--color-danger);
+}
+
+.quiz-block__feedback--pending {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.quiz-block__points {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}

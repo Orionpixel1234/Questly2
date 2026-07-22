@@ -128,6 +128,70 @@ code in a sandboxed same-origin-restricted `<iframe>` (not `eval` in the
 page's own context) and shows `console.log` output. Other languages render
 highlighted but non-executable.
 
+### `<Video src="..." />`
+Self-closing. Embeds an HTML5 `<video>` player pointed at `src`.
+
+### `<Hint>...</Hint>`
+A collapsed-by-default aside the student expands on demand — same
+inline-formatted content rules as `Text`/`Callout`, but framed as "click to
+reveal" rather than always-visible.
+
+### `<Divider />`
+Self-closing, no attributes. A plain visual rule between sections.
+
+### `<Summary>...</Summary>`
+A styled recap paragraph, typically used at the end of a lesson. Inline-
+formatted like `Text`.
+
+## Quiz blocks (v2)
+
+Six block types that turn a lesson into an assessment instead of just
+reading material. Every quiz block requires `question` (a **plain string**
+attribute — not inline-formatted; question text can't use `**bold**` etc in
+v2) and `points` (its weight toward the lesson's score). Grading is done by
+`libs/lesson-dsl`'s `gradeAnswers()` — the same pure function runs in the
+Angular preview and the NestJS backend, so a student never sees a different
+score client-side than what actually gets recorded.
+
+Answers are keyed by **block index** — a block's position in the parsed
+`document.blocks` array — not by any author-assigned id. There is no `id`
+attribute in the grammar; this keeps authoring simple at the cost of an
+answer technically being "for whichever block is at index N", which is fine
+since editing a published lesson's content already forces it back to DRAFT
+and a fresh review (see the lessons review workflow), so index drift under a
+live lesson can't happen.
+
+### `<MCQ question="..." correct="N" points="N">` / `<Option>...</Option>`
+Single-select. `correct` is the **0-based index** into the `<Option>`
+children. At least two options required.
+```
+<MCQ question="What is 2 + 2?" correct="1" points="10">
+  <Option>3</Option>
+  <Option>4</Option>
+  <Option>5</Option>
+</MCQ>
+```
+
+### `<Checkbox question="..." correct="[0,2]" points="N">` / `<Option>...</Option>`
+Multi-select. `correct` is a JSON array of 0-based option indices; order
+doesn't matter, but the selected set must match exactly.
+
+### `<TrueFalse question="..." correct="true|false" points="N" />`
+Self-closing.
+
+### `<ShortAnswer question="..." accepted="ans1|ans2" points="N" />`
+Self-closing. `accepted` is a `|`-separated list of acceptable answers,
+matched case-insensitively with whitespace normalized (not fuzzy/substring
+matching).
+
+### `<Numeric question="..." answer="42" tolerance="0.5" points="N" />`
+Self-closing. `tolerance` defaults to `0` (exact match) if omitted; the
+submitted answer is accepted when `abs(submitted - answer) <= tolerance`.
+
+### `<OpenResponse question="..." points="N" />`
+Self-closing. **Never auto-graded** — always lands in the manual-grading
+queue for an Author/Educator/Admin to score (see the grading endpoints).
+
 ## Validation
 
 The parser rejects (with a line/col-anchored message, shown to the author
@@ -135,12 +199,17 @@ inline rather than silently dropped):
 - Unknown tag names
 - Mismatched/unclosed tags
 - Missing required attributes (`Heading.level`, `Image.alt`, `List.type`,
-  `Molecule` needing either `formula` or `atoms`+`bonds`)
-- Malformed `atoms`/`bonds` JSON on `Molecule`
+  `Molecule` needing either `formula` or `atoms`+`bonds`, every quiz block's
+  `question`/`points`, `MCQ`/`Checkbox`'s `correct`)
+- Malformed `atoms`/`bonds` JSON on `Molecule`, malformed `correct` JSON on
+  `Checkbox`
+- `MCQ`/`Checkbox` with fewer than two `<Option>` children, or a `correct`
+  index out of range
 
-## Non-goals (v1)
+## Non-goals (v2)
 
 - Nested inline formatting, tables, footnotes
-- Quizzes/interactive assessment blocks (not in the Phase 3 checklist scope)
+- Rich (inline-formatted) question text — `question` is a plain string
 - Real chemistry structure parsing (SMILES, bond order, 3D)
 - Executing non-JavaScript code
+- Partial credit on `Checkbox` (all-or-nothing per block)

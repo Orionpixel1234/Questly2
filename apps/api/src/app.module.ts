@@ -11,6 +11,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { AiModule } from './ai/ai.module';
 import { GameModule } from './game/game.module';
 import { AgentModule } from './agent/agent.module';
+import { OutpostModule } from './outpost/outpost.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
@@ -29,6 +30,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     AiModule,
     GameModule,
     AgentModule,
+    OutpostModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import type { Lesson } from '@questly/shared-types';
 import { LessonsApiService } from '../../core/api/lessons-api.service';
+import { AiApiService } from '../../core/api/ai-api.service';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state.component';
 import { ErrorStateComponent } from '../../shared/error-state/error-state.component';
 import { LessonRendererComponent } from '../lesson-renderer/lesson-renderer.component';
@@ -43,6 +44,24 @@ const STATUS_LABEL: Record<Lesson['status'], string> = {
           <span>Description</span>
           <textarea formControlName="description"></textarea>
         </label>
+        <div class="lesson-editor__ai-generate">
+          <input
+            type="text"
+            [formControl]="aiTopic"
+            placeholder="Topic for Nova to draft (e.g. Photosynthesis basics)"
+          />
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="aiGenerating() || !aiTopic.value.trim()"
+            (click)="generateWithNova()"
+          >
+            {{ aiGenerating() ? 'Nova is writing…' : '✨ Generate with Nova' }}
+          </button>
+        </div>
+        @if (aiError()) {
+          <app-error-state [message]="aiError()!" [showRetry]="false" />
+        }
         <div class="lesson-editor__editor">
           <label class="inline-form__field">
             <span>Content (LessonML — see LESSON_DSL.md)</span>
@@ -132,12 +151,17 @@ const STATUS_LABEL: Record<Lesson['status'], string> = {
 export class LessonEditorComponent {
   private readonly fb = inject(FormBuilder);
   private readonly lessonsApi = inject(LessonsApiService);
+  private readonly aiApi = inject(AiApiService);
 
   protected readonly lessons = signal<Lesson[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
   protected readonly editingId = signal<string | null>(null);
+
+  protected readonly aiTopic = new FormControl('', { nonNullable: true });
+  protected readonly aiGenerating = signal(false);
+  protected readonly aiError = signal<string | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -206,6 +230,29 @@ export class LessonEditorComponent {
   private resetForm(): void {
     this.editingId.set(null);
     this.form.reset({ title: '', subject: '', description: '', content: '' });
+  }
+
+  protected generateWithNova(): void {
+    const topic = this.aiTopic.value.trim();
+    if (!topic) return;
+    this.aiGenerating.set(true);
+    this.aiError.set(null);
+    const subject = this.form.controls.subject.value.trim() || undefined;
+    this.aiApi.generateLesson(topic, subject).subscribe({
+      next: (result) => {
+        this.aiGenerating.set(false);
+        this.form.controls.content.setValue(result.content);
+        if (!result.valid) {
+          this.aiError.set(
+            `Nova's draft has a syntax issue (${result.error}) — check the preview and fix it before saving.`,
+          );
+        }
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.aiGenerating.set(false);
+        this.aiError.set(err.error?.message ?? 'Could not generate a lesson right now.');
+      },
+    });
   }
 
   protected submitForReview(lesson: Lesson): void {

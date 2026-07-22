@@ -29,6 +29,7 @@
     "@nestjs/swagger": "^11.4.6",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@questly/lesson-dsl": "file:../../libs/lesson-dsl",
     "@questly/shared-types": "file:../../libs/shared-types",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

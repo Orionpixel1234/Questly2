@@ -7,18 +7,27 @@ import { authGuard } from '../core/guards/auth.guard';
 import { GameApiService } from '../core/api/game-api.service';
 import { LoadingStateComponent } from '../shared/loading-state/loading-state.component';
 import { ErrorStateComponent } from '../shared/error-state/error-state.component';
+import { MiniGamesComponent } from '../features/mini-games/mini-games.component';
+import { OutpostComponent } from '../features/outpost/outpost.component';
 
-// No roleGuard — every role plays the same game. Progress is never
-// game-native: nodes are claimed by completing real lessons (GameService
-// derives the map live from LessonCompletion), so there's nothing to "play"
-// here that isn't also real coursework.
+// No roleGuard — every role plays the same game. Star Chart nodes are
+// claimed by completing real lessons (GameService derives the map live from
+// LessonCompletion) — no separate grind there. The Outpost below is the
+// exception: its stations are actual click-to-play mini-games (see
+// StationMinigameComponent) layered on top of lesson-earned resources.
 export const routeMeta = defineRouteMeta({
   canActivate: [authGuard],
 });
 
 @Component({
   selector: 'app-game-page',
-  imports: [RouterLink, LoadingStateComponent, ErrorStateComponent],
+  imports: [
+    RouterLink,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    MiniGamesComponent,
+    OutpostComponent,
+  ],
   template: `
     <div class="panel-page">
       <section class="panel page-stub">
@@ -102,6 +111,16 @@ export const routeMeta = defineRouteMeta({
       }
 
       <section class="panel panel-page__section">
+        <h2 class="panel-page__heading">Outpost</h2>
+        <p class="panel-page__empty" style="margin: 0 0 var(--space-3)">
+          Lessons pay out resources by subject — craft them into buildings and place them on
+          your grid. Once placed, click a building to play its station mini-game for a direct,
+          skill-scaled top-up on a cooldown.
+        </p>
+        <app-outpost />
+      </section>
+
+      <section class="panel panel-page__section">
         <h2 class="panel-page__heading">Explorers</h2>
         @if (leaderboard().length) {
           <div style="overflow-x: auto">
@@ -127,6 +146,15 @@ export const routeMeta = defineRouteMeta({
         } @else {
           <p class="panel-page__empty">No explorers yet — be the first to earn stardust.</p>
         }
+      </section>
+
+      <section class="panel panel-page__section">
+        <h2 class="panel-page__heading">Practice games</h2>
+        <p class="panel-page__empty" style="margin: 0 0 var(--space-3)">
+          Quick drills on any topic — type one in and Nova writes the questions. No EXP or
+          Stardust here, just practice.
+        </p>
+        <app-mini-games />
       </section>
     </div>
   `,

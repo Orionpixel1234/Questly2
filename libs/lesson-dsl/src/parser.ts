@@ -1,7 +1,10 @@
 import type {
   CalloutBlock,
+  CheckboxBlock,
   CodeBlock,
+  DividerBlock,
   HeadingBlock,
+  HintBlock,
   ImageBlock,
   LessonBlock,
   LessonDocument,
@@ -10,21 +13,43 @@ import type {
   ListItemBlock,
   MathBlock,
   MathGraphBlock,
+  McqBlock,
   MoleculeAtom,
   MoleculeBlock,
+  NumericBlock,
+  OpenResponseBlock,
+  QuizOptionBlock,
+  ShortAnswerBlock,
+  SummaryBlock,
   TextBlock,
+  TrueFalseBlock,
+  VideoBlock,
 } from './ast.ts';
 import { Cursor, ParseException } from './cursor.ts';
 import { normalizeProseWhitespace, parseInline } from './inline.ts';
 
 // Tags with no children, self-closing only (`<Tag ... />`).
-const VOID_TAGS = new Set(['Image', 'MathGraph', 'Molecule']);
+const VOID_TAGS = new Set([
+  'Image',
+  'MathGraph',
+  'Molecule',
+  'Video',
+  'Divider',
+  'TrueFalse',
+  'ShortAnswer',
+  'Numeric',
+  'OpenResponse',
+]);
 // Tags whose content is raw/verbatim (not inline-formatted, no nested tags).
 const RAW_TAGS = new Set(['Math', 'Code']);
 // Tags whose content is inline-formatted prose (no nested block tags).
-// Item is deliberately not here — it's only ever reached via parseItemElement
-// (inside <List>), never through the generic block dispatcher.
-const INLINE_TAGS = new Set(['Heading', 'Text', 'Callout']);
+// Item/Option are deliberately not here — they're only reached via their
+// own dedicated parsers (inside <List>, <MCQ>/<Checkbox>), never through the
+// generic block dispatcher.
+const INLINE_TAGS = new Set(['Heading', 'Text', 'Callout', 'Hint', 'Summary']);
+// Tags with their own structured children (<Option> elements), parsed like
+// <List>/<Item> rather than through RAW_TAGS/INLINE_TAGS/VOID_TAGS.
+const OPTION_GROUP_TAGS = new Set(['MCQ', 'Checkbox']);
 const KNOWN_TAGS = new Set([
   'Heading',
   'Text',
@@ -36,6 +61,17 @@ const KNOWN_TAGS = new Set([
   'MathGraph',
   'Molecule',
   'Code',
+  'Video',
+  'Hint',
+  'Divider',
+  'Summary',
+  'MCQ',
+  'Checkbox',
+  'Option',
+  'TrueFalse',
+  'ShortAnswer',
+  'Numeric',
+  'OpenResponse',
 ]);
 
 export function parseLesson(source: string): LessonParseResult {
@@ -114,6 +150,13 @@ function parseBlockElement(cursor: Cursor): LessonBlock {
   if (tagName === 'Item') {
     throw new ParseException('<Item> may only appear inside <List>', startLine, startColumn);
   }
+  if (tagName === 'Option') {
+    throw new ParseException(
+      '<Option> may only appear inside <MCQ> or <Checkbox>',
+      startLine,
+      startColumn,
+    );
+  }
   const attrs = parseAttributes(cursor);
 
   if (VOID_TAGS.has(tagName)) {
@@ -148,6 +191,12 @@ function parseBlockElement(cursor: Cursor): LessonBlock {
     }
     const block: ListBlock = { type: 'list', ordered: ordered === 'ordered', items };
     return block;
+  }
+
+  if (OPTION_GROUP_TAGS.has(tagName)) {
+    const options = parseOptions(cursor, tagName);
+    expectClose(cursor, tagName);
+    return buildOptionGroupBlock(tagName, attrs, options, startLine, startColumn);
   }
 
   if (RAW_TAGS.has(tagName)) {
@@ -219,6 +268,45 @@ function parseItemElement(cursor: Cursor): ListItemBlock {
   return { type: 'listItem', children: parseInline(normalizeProseWhitespace(raw)) };
 }
 
+function parseOptions(cursor: Cursor, groupTag: string): QuizOptionBlock[] {
+  const options: QuizOptionBlock[] = [];
+  for (;;) {
+    skipWhitespaceAndComments(cursor);
+    if (cursor.startsWith(`</${groupTag}>`)) return options;
+    if (!cursor.startsWith('<Option')) {
+      throw new ParseException(
+        `<${groupTag}> may only contain <Option> elements`,
+        cursor.line,
+        cursor.column,
+      );
+    }
+    options.push(parseOptionElement(cursor));
+  }
+}
+
+function parseOptionElement(cursor: Cursor): QuizOptionBlock {
+  const startLine = cursor.line;
+  const startColumn = cursor.column;
+  cursor.advance(); // '<'
+  readIdentifier(cursor); // 'Option'
+  parseAttributes(cursor);
+  cursor.skipWhitespace();
+  if (!cursor.startsWith('>')) {
+    throw new ParseException('Expected ">" to close <Option>', cursor.line, cursor.column);
+  }
+  cursor.advance();
+  const closeSeq = '</Option>';
+  const end = cursor.indexOf(closeSeq);
+  if (end === -1) {
+    throw new ParseException('Unclosed <Option>', startLine, startColumn);
+  }
+  const rawStart = cursor.pos;
+  cursor.advanceTo(end);
+  const raw = cursor.slice(rawStart, end);
+  cursor.advance(closeSeq.length);
+  return { type: 'option', children: parseInline(normalizeProseWhitespace(raw)) };
+}
+
 function readIdentifier(cursor: Cursor): string {
   let name = '';
   while (!cursor.eof() && /[A-Za-z0-9]/.test(cursor.peek())) {
@@ -248,8 +336,8 @@ function parseAttributes(cursor: Cursor): Record<string, string> {
     cursor.advance();
     cursor.skipWhitespace();
     // Both quote styles are accepted (like JSX) specifically so attributes
-    // carrying JSON (Molecule's atoms/bonds) can use "..." internally
-    // without every character needing a backslash.
+    // carrying JSON (Molecule's atoms/bonds, Checkbox's correct) can use
+    // "..." internally without every character needing a backslash.
     const quote = cursor.peek();
     if (quote !== '"' && quote !== "'") {
       throw new ParseException(
@@ -320,13 +408,78 @@ function requireNumberAttr(
   return value;
 }
 
+function requireRequiredNumberAttr(
+  attrs: Record<string, string>,
+  name: string,
+  tagName: string,
+  line: number,
+  column: number,
+): number {
+  const raw = requireAttr(attrs, name, tagName, line, column);
+  const value = Number(raw);
+  if (Number.isNaN(value)) {
+    throw new ParseException(
+      `<${tagName}> attribute "${name}" must be a number, got "${raw}"`,
+      line,
+      column,
+    );
+  }
+  return value;
+}
+
+function requireBooleanAttr(
+  attrs: Record<string, string>,
+  name: string,
+  tagName: string,
+  line: number,
+  column: number,
+): boolean {
+  const raw = requireAttr(attrs, name, tagName, line, column);
+  if (raw !== 'true' && raw !== 'false') {
+    throw new ParseException(
+      `<${tagName}> attribute "${name}" must be "true" or "false", got "${raw}"`,
+      line,
+      column,
+    );
+  }
+  return raw === 'true';
+}
+
+function requireJsonNumberArrayAttr(
+  attrs: Record<string, string>,
+  name: string,
+  tagName: string,
+  line: number,
+  column: number,
+): number[] {
+  const raw = requireAttr(attrs, name, tagName, line, column);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new ParseException(
+      `<${tagName}> attribute "${name}" must be a JSON array of numbers, e.g. "[0,2]"`,
+      line,
+      column,
+    );
+  }
+  if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === 'number')) {
+    throw new ParseException(
+      `<${tagName}> attribute "${name}" must be a JSON array of numbers, e.g. "[0,2]"`,
+      line,
+      column,
+    );
+  }
+  return parsed;
+}
+
 function buildInlineBlock(
   tagName: string,
   attrs: Record<string, string>,
   children: ReturnType<typeof parseInline>,
   line: number,
   column: number,
-): HeadingBlock | TextBlock | CalloutBlock {
+): HeadingBlock | TextBlock | CalloutBlock | HintBlock | SummaryBlock {
   switch (tagName) {
     case 'Heading': {
       const levelRaw = requireAttr(attrs, 'level', 'Heading', line, column);
@@ -353,6 +506,10 @@ function buildInlineBlock(
       }
       return { type: 'callout', calloutType, children };
     }
+    case 'Hint':
+      return { type: 'hint', children };
+    case 'Summary':
+      return { type: 'summary', children };
     default:
       throw new ParseException(`<${tagName}> cannot appear here`, line, column);
   }
@@ -382,7 +539,7 @@ function buildVoidBlock(
   attrs: Record<string, string>,
   line: number,
   column: number,
-): ImageBlock | MathGraphBlock | MoleculeBlock {
+): ImageBlock | MathGraphBlock | MoleculeBlock | VideoBlock | DividerBlock | TrueFalseBlock | ShortAnswerBlock | NumericBlock | OpenResponseBlock {
   if (tagName === 'Image') {
     return {
       type: 'image',
@@ -396,6 +553,45 @@ function buildVoidBlock(
       fn: requireAttr(attrs, 'fn', 'MathGraph', line, column),
       xmin: requireNumberAttr(attrs, 'xmin', -10, 'MathGraph', line, column),
       xmax: requireNumberAttr(attrs, 'xmax', 10, 'MathGraph', line, column),
+    };
+  }
+  if (tagName === 'Video') {
+    return { type: 'video', src: requireAttr(attrs, 'src', 'Video', line, column) };
+  }
+  if (tagName === 'Divider') {
+    return { type: 'divider' };
+  }
+  if (tagName === 'TrueFalse') {
+    return {
+      type: 'truefalse',
+      question: requireAttr(attrs, 'question', 'TrueFalse', line, column),
+      correct: requireBooleanAttr(attrs, 'correct', 'TrueFalse', line, column),
+      points: requireRequiredNumberAttr(attrs, 'points', 'TrueFalse', line, column),
+    };
+  }
+  if (tagName === 'ShortAnswer') {
+    const acceptedRaw = requireAttr(attrs, 'accepted', 'ShortAnswer', line, column);
+    return {
+      type: 'shortAnswer',
+      question: requireAttr(attrs, 'question', 'ShortAnswer', line, column),
+      accepted: acceptedRaw.split('|').map((s) => s.trim()).filter(Boolean),
+      points: requireRequiredNumberAttr(attrs, 'points', 'ShortAnswer', line, column),
+    };
+  }
+  if (tagName === 'Numeric') {
+    return {
+      type: 'numeric',
+      question: requireAttr(attrs, 'question', 'Numeric', line, column),
+      answer: requireRequiredNumberAttr(attrs, 'answer', 'Numeric', line, column),
+      tolerance: requireNumberAttr(attrs, 'tolerance', 0, 'Numeric', line, column),
+      points: requireRequiredNumberAttr(attrs, 'points', 'Numeric', line, column),
+    };
+  }
+  if (tagName === 'OpenResponse') {
+    return {
+      type: 'openResponse',
+      question: requireAttr(attrs, 'question', 'OpenResponse', line, column),
+      points: requireRequiredNumberAttr(attrs, 'points', 'OpenResponse', line, column),
     };
   }
   // Molecule
@@ -422,6 +618,53 @@ function buildVoidBlock(
     line,
     column,
   );
+}
+
+function buildOptionGroupBlock(
+  tagName: string,
+  attrs: Record<string, string>,
+  options: QuizOptionBlock[],
+  line: number,
+  column: number,
+): McqBlock | CheckboxBlock {
+  if (options.length < 2) {
+    throw new ParseException(`<${tagName}> needs at least two <Option> elements`, line, column);
+  }
+  if (tagName === 'MCQ') {
+    const correct = requireRequiredNumberAttr(attrs, 'correct', 'MCQ', line, column);
+    if (!Number.isInteger(correct) || correct < 0 || correct >= options.length) {
+      throw new ParseException(
+        `<MCQ correct="..."> must be a valid option index (0-${options.length - 1}), got "${correct}"`,
+        line,
+        column,
+      );
+    }
+    return {
+      type: 'mcq',
+      question: requireAttr(attrs, 'question', 'MCQ', line, column),
+      options,
+      correct,
+      points: requireRequiredNumberAttr(attrs, 'points', 'MCQ', line, column),
+    };
+  }
+  // Checkbox
+  const correct = requireJsonNumberArrayAttr(attrs, 'correct', 'Checkbox', line, column);
+  for (const index of correct) {
+    if (!Number.isInteger(index) || index < 0 || index >= options.length) {
+      throw new ParseException(
+        `<Checkbox correct="..."> contains an invalid option index (0-${options.length - 1}): ${index}`,
+        line,
+        column,
+      );
+    }
+  }
+  return {
+    type: 'checkbox',
+    question: requireAttr(attrs, 'question', 'Checkbox', line, column),
+    options,
+    correct,
+    points: requireRequiredNumberAttr(attrs, 'points', 'Checkbox', line, column),
+  };
 }
 
 export type { LessonDocument } from './ast.ts';

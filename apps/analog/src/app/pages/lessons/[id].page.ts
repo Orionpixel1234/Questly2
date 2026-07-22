@@ -1,10 +1,15 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { defineRouteMeta, injectActivatedRoute } from '@analogjs/router';
 import { EXP_PER_LESSON, type Lesson } from '@questly/shared-types';
+import { gradeAnswers, isGradableBlock, parseLesson } from '@questly/lesson-dsl';
+import type { AnswerFeedback, AnswersPayload, AnswerValue } from '@questly/lesson-dsl';
 import { authGuard } from '../../core/guards/auth.guard';
 import { LessonsApiService } from '../../core/api/lessons-api.service';
-import { ProgressApiService } from '../../core/api/progress-api.service';
+import {
+  ProgressApiService,
+  type CompleteLessonGrading,
+} from '../../core/api/progress-api.service';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state.component';
 import { ErrorStateComponent } from '../../shared/error-state/error-state.component';
 import { LessonRendererComponent } from '../../features/lesson-renderer/lesson-renderer.component';
@@ -54,7 +59,12 @@ export const routeMeta = defineRouteMeta({
                   [disabled]="completing()"
                   (click)="markComplete(lesson.id)"
                 >
-                  {{ completing() ? 'Saving…' : 'Mark complete (+' + expPerLesson + ' EXP)' }}
+                  {{
+                    completing()
+                      ? 'Saving…'
+                      : (hasQuiz() ? 'Submit answers' : 'Mark complete') +
+                        ' (+' + expPerLesson + ' EXP)'
+                  }}
                 </button>
               }
             </div>
@@ -70,10 +80,28 @@ export const routeMeta = defineRouteMeta({
           @if (completeError()) {
             <app-error-state [message]="completeError()!" [showRetry]="false" />
           }
+          @if (gradingSummary(); as g) {
+            <div class="panel lesson-detail__grading-summary">
+              <p>
+                Auto-graded score: <strong>{{ g.autoScore }}/{{ g.autoTotal }}</strong>
+              </p>
+              @if (g.pendingManualGrading) {
+                <p class="lesson-detail__grading-pending">
+                  {{ g.manualTotal }} points pending manual review from your instructor.
+                </p>
+              }
+            </div>
+          }
 
           <p class="lesson-detail__description">{{ lesson.description }}</p>
           <div class="lesson-detail__content">
-            <app-lesson-renderer [source]="lesson.content" />
+            <app-lesson-renderer
+              [source]="lesson.content"
+              [answers]="answers()"
+              [feedback]="submittedFeedback()"
+              [disabled]="completed()"
+              (answerChange)="onAnswerChange($event)"
+            />
           </div>
         </article>
       }
@@ -94,6 +122,21 @@ export default class LessonDetailPageComponent {
   protected readonly completing = signal(false);
   protected readonly completeError = signal<string | null>(null);
   protected readonly callModeActive = signal(false);
+
+  protected readonly answers = signal<AnswersPayload>({});
+  protected readonly submittedFeedback = signal<AnswerFeedback[] | null>(null);
+  protected readonly gradingSummary = signal<CompleteLessonGrading | null>(null);
+
+  private readonly parsedDocument = computed(() => {
+    const source = this.lesson()?.content;
+    if (!source) return null;
+    const result = parseLesson(source);
+    return result.ok ? result.document : null;
+  });
+
+  protected readonly hasQuiz = computed(
+    () => this.parsedDocument()?.blocks.some(isGradableBlock) ?? false,
+  );
 
   constructor() {
     this.load();
@@ -123,13 +166,26 @@ export default class LessonDetailPageComponent {
     });
   }
 
+  protected onAnswerChange(event: { blockIndex: number; value: AnswerValue }): void {
+    this.answers.update((current) => ({ ...current, [event.blockIndex]: event.value }));
+  }
+
   protected markComplete(lessonId: string): void {
     this.completing.set(true);
     this.completeError.set(null);
-    this.progressApi.completeLesson(lessonId).subscribe({
-      next: () => {
+    const answers = this.hasQuiz() ? this.answers() : undefined;
+    this.progressApi.completeLesson(lessonId, answers).subscribe({
+      next: (result) => {
         this.completed.set(true);
         this.completing.set(false);
+        this.gradingSummary.set(result.grading);
+        // Same pure gradeAnswers() the backend used to compute the
+        // authoritative score — re-run here purely to render per-question
+        // correct/incorrect state (see LESSON_DSL.md's Quiz blocks section).
+        const document = this.parsedDocument();
+        if (document && answers) {
+          this.submittedFeedback.set(gradeAnswers(document, answers).feedback);
+        }
       },
       error: () => {
         this.completeError.set('Could not mark this lesson complete.');

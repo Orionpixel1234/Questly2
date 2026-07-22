@@ -17,6 +17,7 @@ import { GameApiService } from '../core/api/game-api.service';
 import { LoadingStateComponent } from '../shared/loading-state/loading-state.component';
 import { ErrorStateComponent } from '../shared/error-state/error-state.component';
 import { LessonRendererComponent } from '../features/lesson-renderer/lesson-renderer.component';
+import { GradingQueueComponent } from '../features/grading-queue/grading-queue.component';
 
 export const routeMeta = defineRouteMeta({
   canActivate: [authGuard, roleGuard],
@@ -32,6 +33,7 @@ const ROLES: UserRole[] = ['admin', 'author', 'student', 'educator'];
     LoadingStateComponent,
     ErrorStateComponent,
     LessonRendererComponent,
+    GradingQueueComponent,
   ],
   template: `
     <div class="panel-page">
@@ -141,6 +143,8 @@ const ROLES: UserRole[] = ['admin', 'author', 'student', 'educator'];
           <p class="panel-page__empty">Nothing waiting on review.</p>
         }
       </section>
+
+      <app-grading-queue />
 
       <section class="panel panel-page__section">
         <h1 class="page-stub__title" style="margin-bottom: 0">Users</h1>

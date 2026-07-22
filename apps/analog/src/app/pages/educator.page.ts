@@ -10,6 +10,7 @@ import { LoadingStateComponent } from '../shared/loading-state/loading-state.com
 import { ErrorStateComponent } from '../shared/error-state/error-state.component';
 import { LeaderboardComponent } from '../features/leaderboard/leaderboard.component';
 import { LessonEditorComponent } from '../features/lesson-editor/lesson-editor.component';
+import { GradingQueueComponent } from '../features/grading-queue/grading-queue.component';
 
 export const routeMeta = defineRouteMeta({
   canActivate: [authGuard, roleGuard],
@@ -24,6 +25,7 @@ export const routeMeta = defineRouteMeta({
     ErrorStateComponent,
     LeaderboardComponent,
     LessonEditorComponent,
+    GradingQueueComponent,
   ],
   template: `
     <div class="panel-page">
@@ -119,6 +121,7 @@ export const routeMeta = defineRouteMeta({
       }
 
       <app-lesson-editor />
+      <app-grading-queue />
 
       <app-leaderboard />
     </div>
