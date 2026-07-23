@@ -54,6 +54,11 @@ export class LessonsController {
     return this.lessonsService.findPending();
   }
 
+  @Get('dsl-readme')
+  getDslReadme() {
+    return this.lessonsService.getDslReadme();
+  }
+
   @Get()
   findPublished(@Query('subject') subject?: string) {
     return this.lessonsService.findPublished(subject);

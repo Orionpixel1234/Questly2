@@ -69,12 +69,6 @@
       "unitTestRunner": "vitest-analog"
     }
   },
-<<<<<<< HEAD
   "defaultProject": "analog",
   "nxCloudId": "6a5a3c8979972f685a2adfba"
 }
-=======
-  "defaultProject": "Questly",
-  "nxCloudId": "6a5a3d499790fe368f6b400d"
-}
->>>>>>> 186764658e0a963747b70ad5a014a5b48dbca759

@@ -12,6 +12,7 @@ import { AiModule } from './ai/ai.module';
 import { GameModule } from './game/game.module';
 import { AgentModule } from './agent/agent.module';
 import { OutpostModule } from './outpost/outpost.module';
+import { SpaceStationModule } from './space-station/space-station.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
@@ -31,6 +32,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     GameModule,
     AgentModule,
     OutpostModule,
+    SpaceStationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

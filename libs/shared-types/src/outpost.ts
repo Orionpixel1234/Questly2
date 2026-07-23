@@ -4,14 +4,22 @@
 // in the same transaction as EXP/Stardust, so there's no way to "mine"
 // without actually completing real lessons.
 
-export type ResourceType = 'CRYSTAL' | 'ALLOY' | 'BIOMASS' | 'DATACORE' | 'FUEL';
+export type ResourceType =
+  | 'CRYSTAL'
+  | 'ALLOY'
+  | 'BIOMASS'
+  | 'DATACORE'
+  | 'FUEL'
+  | 'ICE';
 
+// Every resource type that exists in the economy (balance display, etc).
 export const RESOURCE_TYPES: ResourceType[] = [
   'CRYSTAL',
   'ALLOY',
   'BIOMASS',
   'DATACORE',
   'FUEL',
+  'ICE',
 ];
 
 export const RESOURCE_LABEL: Record<ResourceType, string> = {
@@ -20,7 +28,21 @@ export const RESOURCE_LABEL: Record<ResourceType, string> = {
   BIOMASS: 'Biomass',
   DATACORE: 'Datacore',
   FUEL: 'Fuel',
+  ICE: 'Ice',
 };
+
+// The subset a lesson's subject can hash to — deliberately excludes ICE,
+// which only ever comes from the Asteroid Belt (see ASTEROID_REWARD_ICE),
+// never from lessons. A fixed list independent of RESOURCE_TYPES, so adding
+// a future resource type there can never silently reshuffle which resource
+// an existing subject mines.
+const LESSON_MINEABLE_RESOURCES: ResourceType[] = [
+  'CRYSTAL',
+  'ALLOY',
+  'BIOMASS',
+  'DATACORE',
+  'FUEL',
+];
 
 // Deterministic subject -> resource mapping (a stable hash, not a lookup
 // table someone has to maintain) — the same subject always mines the same
@@ -30,10 +52,35 @@ export function resourceForSubject(subject: string): ResourceType {
   for (let i = 0; i < subject.length; i++) {
     hash = (hash * 31 + subject.charCodeAt(i)) >>> 0;
   }
-  return RESOURCE_TYPES[hash % RESOURCE_TYPES.length];
+  return LESSON_MINEABLE_RESOURCES[hash % LESSON_MINEABLE_RESOURCES.length];
 }
 
 export const RESOURCE_PER_LESSON = 3;
+export const REPLAY_RESOURCE_PER_LESSON = 1;
+
+// A small head-start so a brand-new account isn't staring at an empty
+// Outpost with nothing craftable — seeded once (OutpostService.ensureStarterKit
+// triggers on "this account has zero resource-balance rows of any kind",
+// so it can never re-trigger after the player has actually earned/spent
+// anything).
+export const STARTER_RESOURCE_AMOUNT = 6;
+
+// The Asteroid Belt: a mining spot that needs no crafted building and no
+// lesson — available from the moment you sign up. "Mining" is answering one
+// Nova-generated question correctly (see AiService.generateQuestions),
+// which is also what keeps it from being an instant-click grind.
+export const ASTEROID_REWARD_ICE = 4;
+
+export interface AsteroidQuestion {
+  attemptId: string;
+  question: string;
+}
+
+export interface AsteroidAnswerResult {
+  correct: boolean;
+  correctAnswer?: string;
+  awarded?: number;
+}
 
 export interface OutpostRecipe {
   key: string;
@@ -153,11 +200,22 @@ export interface QuestProgress {
   claimed: boolean;
 }
 
+// Passive automation: every placed building trickles its resource in on its
+// own, no clicking required — separate from (and stacking with) the active
+// station mini-game below, which uses its own lastCollectedAt clock. Shared
+// here (not duplicated per-service) so the frontend can compute an accurate
+// "next tick in Ns" countdown from the same numbers the backend actually
+// used to calculate the payout.
+export const AUTOMATION_INTERVAL_MINUTES = 10;
+export const AUTOMATION_MAX_TICKS = 36; // 6 hours' worth per building, per check
+export const AUTOMATION_YIELD_PER_TICK = 1;
+
 export interface OutpostGridCell {
   x: number;
   y: number;
   buildingKey: string;
   lastCollectedAt: string | null;
+  lastAutomationAt: string | null;
 }
 
 export interface OutpostState {
@@ -166,6 +224,11 @@ export interface OutpostState {
   stock: { buildingKey: string; stock: number; totalCrafted: number }[];
   grid: OutpostGridCell[];
   quests: QuestProgress[];
+  // Whatever passive automation credited on this fetch (usually empty — a
+  // player who checks in more often than the tick interval sees nothing new
+  // each time). Surfaced so the UI can show a "⚙ automation: +N X" toast
+  // instead of resources just silently changing between visits.
+  automationCollected: { resource: ResourceType; amount: number }[];
 }
 
 // A placed building doubles as a "station": a short reflex mini-game you can

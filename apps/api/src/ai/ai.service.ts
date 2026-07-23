@@ -110,19 +110,31 @@ export class AiService {
     const count = dto.count ?? 25;
     const system = `Output ONLY a JSON array (no markdown fences, no commentary) of exactly ${count}
 objects shaped {"q": "question text", "a": "the answer"}. Questions must be short, unambiguous,
-and have a single clear correct answer suitable for a study flashcard.`;
-    const raw = await this.provider.chat(
-      [{ role: 'user', content: `Topic: ${dto.topic}` }],
-      system,
-    );
+and have a single clear correct answer suitable for a study flashcard.
 
-    const questions = parseQuestionsJson(stripCodeFence(raw));
-    if (!questions) {
-      throw new ServiceUnavailableException(
-        'Nova returned an unexpected format — try again.',
+Example of the exact shape (do not reuse these questions):
+[{"q": "What is the capital of France?", "a": "Paris"}, {"q": "2 + 2?", "a": "4"}]`;
+    const userPrompt = `Topic: ${dto.topic}`;
+
+    // Smaller local models (e.g. Ollama) are meaningfully less reliable than
+    // Claude at this — empirically anywhere from "misses the closing ]" to
+    // abandoning the {q,a} shape entirely and free-associating a nested
+    // array of strings instead. The example above and OllamaAiProvider's
+    // lower temperature both reduce how often that happens, but retrying a
+    // few times is still the difference between a real feature and a coin
+    // flip on a local model.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await this.provider.chat(
+        [{ role: 'user', content: userPrompt }],
+        system,
       );
+      const questions = parseQuestionsJson(stripCodeFence(raw));
+      if (questions) return { questions };
     }
-    return { questions };
+
+    throw new ServiceUnavailableException(
+      'Nova returned an unexpected format — try again.',
+    );
   }
 }
 
@@ -135,17 +147,33 @@ function stripCodeFence(text: string): string {
 }
 
 function parseQuestionsJson(text: string): { q: string; a: string }[] | null {
+  const direct = tryParseQuestionArray(text);
+  if (direct) return direct;
+
+  // The most common local-model failure: every object is well-formed, but
+  // generation stops right after the last one without emitting the array's
+  // closing "]". Repair that specific shape before falling back further.
+  const trimmed = text.trim();
+  if (trimmed.startsWith('[') && !trimmed.endsWith(']')) {
+    const repaired = tryParseQuestionArray(`${trimmed.replace(/,\s*$/, '')}]`);
+    if (repaired) return repaired;
+  }
+
+  // Last resort: pull out any individually well-formed {"q":...,"a":...}
+  // objects regardless of what surrounds them (stray commentary, a missing
+  // bracket the repair above couldn't fix, etc).
+  return extractQuestionObjects(text);
+}
+
+function tryParseQuestionArray(
+  text: string,
+): { q: string; a: string }[] | null {
   try {
     const parsed: unknown = JSON.parse(text);
     if (
       Array.isArray(parsed) &&
-      parsed.every(
-        (item): item is { q: string; a: string } =>
-          typeof item === 'object' &&
-          item !== null &&
-          typeof (item as Record<string, unknown>)['q'] === 'string' &&
-          typeof (item as Record<string, unknown>)['a'] === 'string',
-      )
+      parsed.length > 0 &&
+      parsed.every(isQuestionShape)
     ) {
       return parsed;
     }
@@ -153,4 +181,31 @@ function parseQuestionsJson(text: string): { q: string; a: string }[] | null {
   } catch {
     return null;
   }
+}
+
+function extractQuestionObjects(
+  text: string,
+): { q: string; a: string }[] | null {
+  const matches = text.matchAll(
+    /\{\s*"q"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"a"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}/g,
+  );
+  const questions: { q: string; a: string }[] = [];
+  for (const match of matches) {
+    try {
+      const obj: unknown = JSON.parse(match[0]);
+      if (isQuestionShape(obj)) questions.push(obj);
+    } catch {
+      // Skip a match that looked right but didn't actually parse.
+    }
+  }
+  return questions.length > 0 ? questions : null;
+}
+
+function isQuestionShape(item: unknown): item is { q: string; a: string } {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    typeof (item as Record<string, unknown>)['q'] === 'string' &&
+    typeof (item as Record<string, unknown>)['a'] === 'string'
+  );
 }

@@ -30,6 +30,12 @@ export class OllamaAiProvider implements AiProvider {
         body: JSON.stringify({
           model: this.model,
           stream: false,
+          // Ollama's default temperature (~0.8) is tuned for open-ended
+          // chat; small local models like llama3.2 drift off-format far
+          // more often at that setting when asked for exact structured
+          // output (JSON question lists, LessonML). 0.4 cuts that drift
+          // substantially while still reading naturally in plain chat.
+          options: { temperature: 0.4 },
           messages: [
             { role: 'system', content: systemPrompt },
             ...turns.map((turn) => ({

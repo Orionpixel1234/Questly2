@@ -1,3 +1,5 @@
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 import {
   BadRequestException,
   ForbiddenException,
@@ -14,9 +16,20 @@ export interface LessonActor {
   role: string;
 }
 
+// process.cwd() is apps/api (every npm script in this project runs with
+// that as its working directory), so two levels up is the repo root where
+// LESSON_DSL.md actually lives — read live rather than duplicating its
+// content, so the in-app reference can never drift from the real spec.
+const LESSON_DSL_README_PATH = join(process.cwd(), '..', '..', 'LESSON_DSL.md');
+
 @Injectable()
 export class LessonsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getDslReadme(): Promise<{ content: string }> {
+    const content = await readFile(LESSON_DSL_README_PATH, 'utf-8');
+    return { content };
+  }
 
   create(authorId: string, dto: CreateLessonDto) {
     return this.prisma.lesson.create({

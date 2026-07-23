@@ -15,6 +15,7 @@ import { OutpostService } from './outpost.service';
 import { CraftDto } from './dto/craft.dto';
 import { PlaceDto } from './dto/place.dto';
 import { CollectStationDto } from './dto/collect-station.dto';
+import { AsteroidAnswerDto } from './dto/asteroid-answer.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { RequestUser } from '../auth/strategies/jwt.strategy';
 
@@ -59,6 +60,25 @@ export class OutpostController {
       dto.x,
       dto.y,
       dto.score,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('asteroid/start')
+  startAsteroid(@Req() req: Request & { user: RequestUser }) {
+    return this.outpostService.startAsteroidMining(req.user.userId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('asteroid/answer')
+  answerAsteroid(
+    @Req() req: Request & { user: RequestUser },
+    @Body() dto: AsteroidAnswerDto,
+  ) {
+    return this.outpostService.answerAsteroidMining(
+      req.user.userId,
+      dto.attemptId,
+      dto.answer,
     );
   }
 

@@ -85,6 +85,7 @@
 }
 
 .outpost__cell {
+  position: relative;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -110,7 +111,6 @@
 
 .outpost__cell--ready {
   cursor: pointer;
-  position: relative;
   animation: outpost-station-glow 1.8s ease-in-out infinite;
 }
 
@@ -130,6 +130,14 @@
   font-size: 0.55rem;
   font-family: var(--font-mono);
   color: var(--color-text-muted);
+}
+
+.outpost__cell-automation {
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  font-size: 0.55rem;
+  opacity: 0.7;
 }
 
 .outpost__collect-toast {

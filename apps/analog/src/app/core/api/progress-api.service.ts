@@ -16,6 +16,7 @@ export interface CompleteLessonResult {
   exp: number;
   level: number;
   expAwarded: number;
+  replay: boolean;
   grading: CompleteLessonGrading | null;
 }
 

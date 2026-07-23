@@ -1,12 +1,15 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
   EXP_PER_LESSON,
+  REPLAY_COOLDOWN_MINUTES,
+  REPLAY_EXP_PER_LESSON,
+  REPLAY_RESOURCE_PER_LESSON,
+  REPLAY_STARDUST_PER_LESSON,
   RESOURCE_PER_LESSON,
   STARDUST_PER_LESSON,
   levelForExp,
@@ -40,12 +43,15 @@ export class ProgressService {
     }));
   }
 
-  // Idempotent: completing the same lesson twice is a 409, not double EXP.
-  // If the student never set an explicit goal for the lesson's subject, one
-  // is created with a starter target so the EXP has somewhere to land.
-  // `answers` is optional and only meaningful for lessons with quiz blocks
-  // (see LESSON_DSL.md's "Quiz blocks" section) — a plain content lesson is
-  // completed exactly like before, no grading involved.
+  // First completion of a lesson awards the full reward; every completion
+  // after that is a "replay" — smaller reward, cooldown-gated (see
+  // REPLAY_COOLDOWN_MINUTES) — so a student who's worked through every
+  // published lesson still has something to do instead of hitting a dead
+  // end. If the student never set an explicit goal for the lesson's
+  // subject, one is created with a starter target so the EXP has somewhere
+  // to land. `answers` is optional and only meaningful for lessons with
+  // quiz blocks (see LESSON_DSL.md's "Quiz blocks" section) — a plain
+  // content lesson is completed exactly like before, no grading involved.
   async completeLesson(
     userId: string,
     lessonId: string,
@@ -58,12 +64,30 @@ export class ProgressService {
       throw new NotFoundException('Lesson not found');
     }
 
-    const existing = await this.prisma.lessonCompletion.findUnique({
-      where: { userId_lessonId: { userId, lessonId } },
+    const previous = await this.prisma.lessonCompletion.findFirst({
+      where: { userId, lessonId },
+      orderBy: { completedAt: 'desc' },
     });
-    if (existing) {
-      throw new ConflictException('Lesson already completed');
+    const isReplay = previous !== null;
+
+    if (previous) {
+      const readyAt =
+        previous.completedAt.getTime() + REPLAY_COOLDOWN_MINUTES * 60_000;
+      const remainingMinutes = Math.ceil((readyAt - Date.now()) / 60_000);
+      if (remainingMinutes > 0) {
+        throw new BadRequestException(
+          `You can replay this lesson again in ${remainingMinutes}m`,
+        );
+      }
     }
+
+    const expAwarded = isReplay ? REPLAY_EXP_PER_LESSON : EXP_PER_LESSON;
+    const stardustAwarded = isReplay
+      ? REPLAY_STARDUST_PER_LESSON
+      : STARDUST_PER_LESSON;
+    const resourceAwarded = isReplay
+      ? REPLAY_RESOURCE_PER_LESSON
+      : RESOURCE_PER_LESSON;
 
     // Server-side grading is authoritative — the frontend's live preview
     // score (same gradeAnswers() call, run client-side for instant
@@ -78,7 +102,7 @@ export class ProgressService {
         data: {
           userId,
           lessonId,
-          expAwarded: EXP_PER_LESSON,
+          expAwarded,
           answers: answers ? (answers as Prisma.InputJsonValue) : undefined,
           autoScore: grading?.autoScore,
           autoTotal: grading?.autoTotal,
@@ -91,17 +115,17 @@ export class ProgressService {
           userId,
           subject: lesson.subject,
           target: 500,
-          exp: EXP_PER_LESSON,
+          exp: expAwarded,
         },
-        update: { exp: { increment: EXP_PER_LESSON } },
+        update: { exp: { increment: expAwarded } },
       }),
       // Stardust — the game's currency — is awarded here and only here, in
       // the same transaction as the real completion, so the game can never
       // get ahead of (or fall behind) actual lesson progress.
       this.prisma.gameProfile.upsert({
         where: { userId },
-        create: { userId, stardust: STARDUST_PER_LESSON },
-        update: { stardust: { increment: STARDUST_PER_LESSON } },
+        create: { userId, stardust: stardustAwarded },
+        update: { stardust: { increment: stardustAwarded } },
       }),
       // Outpost mining — same rule: the only way to get a resource is to
       // complete the real lesson it's attached to. Which resource is a
@@ -116,9 +140,9 @@ export class ProgressService {
         create: {
           userId,
           resource: resourceForSubject(lesson.subject),
-          amount: RESOURCE_PER_LESSON,
+          amount: resourceAwarded,
         },
-        update: { amount: { increment: RESOURCE_PER_LESSON } },
+        update: { amount: { increment: resourceAwarded } },
       }),
     ]);
 
@@ -126,7 +150,8 @@ export class ProgressService {
       subject: goal.subject,
       exp: goal.exp,
       level: levelForExp(goal.exp),
-      expAwarded: EXP_PER_LESSON,
+      expAwarded,
+      replay: isReplay,
       grading: grading
         ? {
             autoScore: completion.autoScore,
@@ -233,6 +258,7 @@ export class ProgressService {
     const rows = await this.prisma.lessonCompletion.findMany({
       where: { userId },
       select: { lessonId: true },
+      distinct: ['lessonId'],
     });
     return rows.map((row) => row.lessonId);
   }

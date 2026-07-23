@@ -15,6 +15,8 @@ const STATUS_LABEL: Record<Lesson['status'], string> = {
   REJECTED: 'Rejected',
 };
 
+type MathVisualKind = 'math' | 'mathgraph';
+
 // Lesson authoring, shared by the Author and Educator panels — both roles
 // write lessons the same way and submit them into the same admin review
 // queue (see LESSON_DSL.md and the lessons.service review workflow).
@@ -62,6 +64,56 @@ const STATUS_LABEL: Record<Lesson['status'], string> = {
         @if (aiError()) {
           <app-error-state [message]="aiError()!" [showRetry]="false" />
         }
+        <div class="lesson-editor__toolbar">
+          <button type="button" class="btn btn-secondary" (click)="openReadme()">
+            📖 LessonML Reference
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="showMathVisual.set(!showMathVisual())">
+            📐 Insert Math Visual
+          </button>
+        </div>
+
+        @if (showMathVisual()) {
+          <div class="lesson-editor__math-visual panel--raised">
+            <div class="lesson-editor__math-visual-kind">
+              <label class="inline-form__field" style="flex: 0 0 auto">
+                <span>Type</span>
+                <select [formControl]="mathVisualKind">
+                  <option value="math">Math (LaTeX)</option>
+                  <option value="mathgraph">MathGraph (function plot)</option>
+                </select>
+              </label>
+            </div>
+            @if (mathVisualKind.value === 'math') {
+              <label class="inline-form__field" style="flex: 1 1 100%">
+                <span>LaTeX source</span>
+                <input type="text" [formControl]="mathLatex" placeholder="e.g. x^2 + y^2 = r^2" />
+              </label>
+            } @else {
+              <label class="inline-form__field" style="flex: 1 1 12rem">
+                <span>Function of x</span>
+                <input type="text" [formControl]="mathGraphFn" placeholder="e.g. sin(x)" />
+              </label>
+              <label class="inline-form__field" style="flex: 0 0 6rem">
+                <span>x min</span>
+                <input type="text" [formControl]="mathGraphMin" />
+              </label>
+              <label class="inline-form__field" style="flex: 0 0 6rem">
+                <span>x max</span>
+                <input type="text" [formControl]="mathGraphMax" />
+              </label>
+            }
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!mathVisualReady()"
+              (click)="insertMathVisual()"
+            >
+              Insert into content
+            </button>
+          </div>
+        }
+
         <div class="lesson-editor__editor">
           <label class="inline-form__field">
             <span>Content (LessonML — see LESSON_DSL.md)</span>
@@ -142,6 +194,26 @@ const STATUS_LABEL: Record<Lesson['status'], string> = {
         <p class="panel-page__empty">No lessons yet — create your first above.</p>
       }
     </section>
+
+    @if (showReadme()) {
+      <div class="lesson-editor__readme-overlay" role="dialog" aria-modal="true" aria-label="LessonML reference">
+        <div class="lesson-editor__readme-panel">
+          <div class="lesson-editor__readme-header">
+            <h2 class="panel-page__heading" style="margin: 0">LessonML Reference</h2>
+            <button type="button" class="btn btn-secondary" (click)="showReadme.set(false)">
+              Close
+            </button>
+          </div>
+          @if (readmeLoading()) {
+            <app-loading-state label="Loading LESSON_DSL.md…" />
+          } @else if (readmeError()) {
+            <app-error-state [message]="readmeError()!" (retry)="loadReadme()" />
+          } @else {
+            <pre class="lesson-editor__readme-content">{{ readmeContent() }}</pre>
+          }
+        </div>
+      </div>
+    }
   `,
   // panel-page.css lives with the page components — pulled in here too
   // since Angular's emulated encapsulation scopes styles per-component and
@@ -162,6 +234,21 @@ export class LessonEditorComponent {
   protected readonly aiTopic = new FormControl('', { nonNullable: true });
   protected readonly aiGenerating = signal(false);
   protected readonly aiError = signal<string | null>(null);
+
+  protected readonly showReadme = signal(false);
+  protected readonly readmeContent = signal('');
+  protected readonly readmeLoading = signal(false);
+  protected readonly readmeError = signal<string | null>(null);
+  private readmeLoaded = false;
+
+  protected readonly showMathVisual = signal(false);
+  protected readonly mathVisualKind = new FormControl<MathVisualKind>('math', {
+    nonNullable: true,
+  });
+  protected readonly mathLatex = new FormControl('', { nonNullable: true });
+  protected readonly mathGraphFn = new FormControl('', { nonNullable: true });
+  protected readonly mathGraphMin = new FormControl('-10', { nonNullable: true });
+  protected readonly mathGraphMax = new FormControl('10', { nonNullable: true });
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -262,4 +349,55 @@ export class LessonEditorComponent {
   protected deleteLesson(id: string): void {
     this.lessonsApi.remove(id).subscribe(() => this.refresh());
   }
+
+  protected openReadme(): void {
+    this.showReadme.set(true);
+    if (!this.readmeLoaded) this.loadReadme();
+  }
+
+  protected loadReadme(): void {
+    this.readmeLoading.set(true);
+    this.readmeError.set(null);
+    this.lessonsApi.dslReadme().subscribe({
+      next: (result) => {
+        this.readmeContent.set(result.content);
+        this.readmeLoading.set(false);
+        this.readmeLoaded = true;
+      },
+      error: () => {
+        this.readmeError.set('Could not load the LessonML reference.');
+        this.readmeLoading.set(false);
+      },
+    });
+  }
+
+  protected mathVisualReady(): boolean {
+    return this.mathVisualKind.value === 'math'
+      ? this.mathLatex.value.trim().length > 0
+      : this.mathGraphFn.value.trim().length > 0;
+  }
+
+  // A visual (form-driven) way to add Math/MathGraph blocks instead of
+  // hand-typing LessonML tags — inserts the resulting tag at the end of the
+  // content textarea rather than at the cursor, which keeps this simple and
+  // predictable (no need to track/restore textarea selection state).
+  protected insertMathVisual(): void {
+    if (!this.mathVisualReady()) return;
+    const tag =
+      this.mathVisualKind.value === 'math'
+        ? `<Math>${this.mathLatex.value.trim()}</Math>`
+        : `<MathGraph fn="${escapeAttr(this.mathGraphFn.value.trim())}" xmin="${escapeAttr(this.mathGraphMin.value.trim() || '-10')}" xmax="${escapeAttr(this.mathGraphMax.value.trim() || '10')}" />`;
+
+    const current = this.form.controls.content.value;
+    const separator = current ? (current.endsWith('\n') ? '\n' : '\n\n') : '';
+    this.form.controls.content.setValue(`${current}${separator}${tag}\n`);
+
+    this.mathLatex.setValue('');
+    this.mathGraphFn.setValue('');
+    this.showMathVisual.set(false);
+  }
+}
+
+function escapeAttr(value: string): string {
+  return value.replace(/"/g, '&quot;');
 }

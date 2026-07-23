@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { defineRouteMeta, injectActivatedRoute } from '@analogjs/router';
-import { EXP_PER_LESSON, type Lesson } from '@questly/shared-types';
+import { EXP_PER_LESSON, REPLAY_EXP_PER_LESSON, type Lesson } from '@questly/shared-types';
 import { gradeAnswers, isGradableBlock, parseLesson } from '@questly/lesson-dsl';
 import type { AnswerFeedback, AnswersPayload, AnswerValue } from '@questly/lesson-dsl';
 import { authGuard } from '../../core/guards/auth.guard';
@@ -51,7 +51,12 @@ export const routeMeta = defineRouteMeta({
                 🎧 Listen
               </button>
               @if (completed()) {
-                <span class="badge badge--accent">Completed</span>
+                <span class="badge badge--accent">
+                  Completed{{ lastAwarded() !== null ? ' · +' + lastAwarded() + ' EXP' : '' }}
+                </span>
+                <button type="button" class="btn btn-secondary" (click)="startReplay()">
+                  ↻ Replay (+{{ replayExpPerLesson }} EXP)
+                </button>
               } @else {
                 <button
                   type="button"
@@ -63,7 +68,7 @@ export const routeMeta = defineRouteMeta({
                     completing()
                       ? 'Saving…'
                       : (hasQuiz() ? 'Submit answers' : 'Mark complete') +
-                        ' (+' + expPerLesson + ' EXP)'
+                        ' (+' + (everCompleted() ? replayExpPerLesson : expPerLesson) + ' EXP)'
                   }}
                 </button>
               }
@@ -115,10 +120,16 @@ export default class LessonDetailPageComponent {
   private readonly progressApi = inject(ProgressApiService);
 
   protected readonly expPerLesson = EXP_PER_LESSON;
+  protected readonly replayExpPerLesson = REPLAY_EXP_PER_LESSON;
   protected readonly lesson = signal<Lesson | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly completed = signal(false);
+  // Distinct from `completed` — that flips back to false while replaying so
+  // the submit form re-renders, but the button copy (+10 EXP vs +50 EXP)
+  // still needs to know this isn't a first attempt.
+  protected readonly everCompleted = signal(false);
+  protected readonly lastAwarded = signal<number | null>(null);
   protected readonly completing = signal(false);
   protected readonly completeError = signal<string | null>(null);
   protected readonly callModeActive = signal(false);
@@ -155,9 +166,11 @@ export default class LessonDetailPageComponent {
       next: (lesson) => {
         this.lesson.set(lesson);
         this.loading.set(false);
-        this.progressApi
-          .completed()
-          .subscribe((ids) => this.completed.set(ids.includes(id)));
+        this.progressApi.completed().subscribe((ids) => {
+          const done = ids.includes(id);
+          this.completed.set(done);
+          this.everCompleted.set(done);
+        });
       },
       error: () => {
         this.error.set('Could not load this lesson.');
@@ -177,6 +190,8 @@ export default class LessonDetailPageComponent {
     this.progressApi.completeLesson(lessonId, answers).subscribe({
       next: (result) => {
         this.completed.set(true);
+        this.everCompleted.set(true);
+        this.lastAwarded.set(result.expAwarded);
         this.completing.set(false);
         this.gradingSummary.set(result.grading);
         // Same pure gradeAnswers() the backend used to compute the
@@ -187,10 +202,20 @@ export default class LessonDetailPageComponent {
           this.submittedFeedback.set(gradeAnswers(document, answers).feedback);
         }
       },
-      error: () => {
-        this.completeError.set('Could not mark this lesson complete.');
+      error: (err: { error?: { message?: string } }) => {
+        this.completeError.set(
+          err.error?.message ?? 'Could not mark this lesson complete.',
+        );
         this.completing.set(false);
       },
     });
+  }
+
+  protected startReplay(): void {
+    this.completed.set(false);
+    this.answers.set({});
+    this.submittedFeedback.set(null);
+    this.gradingSummary.set(null);
+    this.completeError.set(null);
   }
 }

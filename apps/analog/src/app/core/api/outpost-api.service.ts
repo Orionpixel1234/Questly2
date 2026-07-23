@@ -1,6 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import type { OutpostState, StationCollectResult } from '@questly/shared-types';
+import type {
+  AsteroidAnswerResult,
+  AsteroidQuestion,
+  OutpostState,
+  StationCollectResult,
+} from '@questly/shared-types';
 import { API_BASE_URL } from '../api-base-url.token';
 
 @Injectable({ providedIn: 'root' })
@@ -40,6 +45,22 @@ export class OutpostApiService {
     return this.http.post<OutpostState>(
       `${this.base}/quests/${questKey}/claim`,
       {},
+      { withCredentials: true },
+    );
+  }
+
+  startAsteroidMining() {
+    return this.http.post<AsteroidQuestion>(
+      `${this.base}/asteroid/start`,
+      {},
+      { withCredentials: true },
+    );
+  }
+
+  answerAsteroidMining(attemptId: string, answer: string) {
+    return this.http.post<AsteroidAnswerResult>(
+      `${this.base}/asteroid/answer`,
+      { attemptId, answer },
       { withCredentials: true },
     );
   }

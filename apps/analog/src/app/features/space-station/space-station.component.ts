@@ -2,30 +2,28 @@ import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import {
   AUTOMATION_INTERVAL_MINUTES,
   AUTOMATION_YIELD_PER_TICK,
-  OUTPOST_GRID_SIZE,
-  OUTPOST_RECIPES,
   RESOURCE_LABEL,
   RESOURCE_TYPES,
-  stationFor,
-  type OutpostQuest,
-  type OutpostRecipe,
-  type OutpostState,
-  type QuestProgress,
+  SPACE_STATION_GRID_SIZE,
+  SPACE_STATION_RECIPES,
+  spaceStationStationFor,
   type ResourceType,
+  type SpaceStationRecipe,
+  type SpaceStationState,
   type StationConfig,
 } from '@questly/shared-types';
-import { OutpostApiService } from '../../core/api/outpost-api.service';
+import { SpaceStationApiService } from '../../core/api/space-station-api.service';
 import { LoadingStateComponent } from '../../shared/loading-state/loading-state.component';
 import { ErrorStateComponent } from '../../shared/error-state/error-state.component';
-import { StationMinigameComponent } from './station-minigame.component';
+import { StationMinigameComponent } from '../outpost/station-minigame.component';
 
 const BUILDING_ICON: Record<string, string> = {
-  SOLAR_ARRAY: '☀️',
-  ALLOY_FOUNDRY: '⚒️',
-  BIO_DOME: '🌱',
-  DATA_RELAY: '📡',
-  FUEL_DEPOT: '⛽',
-  COMMAND_CENTER: '🏛️',
+  COMMS_ARRAY: '📡',
+  CRYO_BAY: '🧊',
+  SHIELD_GENERATOR: '🛡️',
+  OBSERVATION_DECK: '🔭',
+  DOCKING_RING: '🚀',
+  COMMAND_BRIDGE: '🎛️',
 };
 
 interface GridCell {
@@ -42,18 +40,19 @@ interface ActiveStation {
   config: StationConfig;
 }
 
-// Mining/crafting/building/quests. Lessons remain the primary way to earn
-// resources (ProgressService.completeLesson), but every placed building is
-// also a "station": click it to play a short timing mini-game on a cooldown
-// for a direct, skill-scaled top-up — real gameplay layered on top of study.
+// A second, independent base from the Outpost — same crafting/place/station
+// mechanics (see OutpostComponent), but its own grid, its own building
+// catalog (orbital/tech themed rather than ground/resource), and no quests
+// of its own. Resources are the same shared economy as the Outpost — Ice,
+// mined at the Asteroid Belt, is what most of this base's recipes spend.
 @Component({
-  selector: 'app-outpost',
+  selector: 'app-space-station',
   imports: [LoadingStateComponent, ErrorStateComponent, StationMinigameComponent],
   template: `
     @if (loadError()) {
       <app-error-state [message]="loadError()!" (retry)="refresh()" />
     } @else if (loading()) {
-      <app-loading-state label="Scanning the outpost…" />
+      <app-loading-state label="Docking with the station…" />
     } @else if (state(); as s) {
       <div class="outpost__resources">
         @for (resource of resourceTypes; track resource) {
@@ -110,9 +109,9 @@ interface ActiveStation {
         <p class="panel-page__empty">Nothing crafted yet — craft something above.</p>
       }
 
-      <h3 class="outpost__subheading">Outpost grid</h3>
+      <h3 class="outpost__subheading">Station grid</h3>
       <p class="panel-page__empty" style="margin: 0 0 var(--space-3)">
-        Placed buildings are stations — click one to play its mini-game for a resource top-up.
+        Same as the Outpost: placed buildings are stations you can click to play for a top-up.
       </p>
       <div
         class="outpost__grid"
@@ -155,34 +154,6 @@ interface ActiveStation {
       @if (collectError()) {
         <app-error-state [message]="collectError()!" [showRetry]="false" />
       }
-
-      <h3 class="outpost__subheading">Quests</h3>
-      @if (claimError()) {
-        <app-error-state [message]="claimError()!" [showRetry]="false" />
-      }
-      <div class="outpost__quests">
-        @for (q of s.quests; track q.quest.key) {
-          <div class="panel--raised outpost__quest">
-            <div class="outpost__quest-body">
-              <h4>{{ q.quest.title }}</h4>
-              <p class="outpost__recipe-desc">{{ q.quest.description }}</p>
-              <div class="progress-bar">
-                <div class="progress-bar__fill" [style.width.%]="questPercent(q)"></div>
-              </div>
-              <span class="stat-card__hint">{{ q.current }}/{{ q.target }}</span>
-            </div>
-            @if (q.claimed) {
-              <span class="badge badge--accent">Claimed</span>
-            } @else if (q.complete) {
-              <button type="button" class="btn btn-primary" (click)="claim(q.quest.key)">
-                Claim {{ rewardLabel(q.quest) }}
-              </button>
-            } @else {
-              <span class="badge">In progress</span>
-            }
-          </div>
-        }
-      </div>
     }
     @if (activeStation(); as station) {
       <app-station-minigame
@@ -193,21 +164,20 @@ interface ActiveStation {
       />
     }
   `,
-  styleUrls: ['../../pages/panel-page.css', './outpost.component.css'],
+  styleUrls: ['../../pages/panel-page.css', '../outpost/outpost.component.css'],
 })
-export class OutpostComponent implements OnDestroy {
-  private readonly outpostApi = inject(OutpostApiService);
+export class SpaceStationComponent implements OnDestroy {
+  private readonly stationApi = inject(SpaceStationApiService);
 
+  protected readonly recipes = SPACE_STATION_RECIPES;
+  protected readonly gridSize = SPACE_STATION_GRID_SIZE;
   protected readonly resourceTypes = RESOURCE_TYPES;
-  protected readonly recipes = OUTPOST_RECIPES;
-  protected readonly gridSize = OUTPOST_GRID_SIZE;
 
-  protected readonly state = signal<OutpostState | null>(null);
+  protected readonly state = signal<SpaceStationState | null>(null);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly craftError = signal<string | null>(null);
   protected readonly placeError = signal<string | null>(null);
-  protected readonly claimError = signal<string | null>(null);
   protected readonly collectError = signal<string | null>(null);
   protected readonly collectMessage = signal<string | null>(null);
   protected readonly crafting = signal(false);
@@ -225,8 +195,8 @@ export class OutpostComponent implements OnDestroy {
       (this.state()?.grid ?? []).map((g) => [`${g.x}-${g.y}`, g]),
     );
     const cells: GridCell[] = [];
-    for (let y = 0; y < OUTPOST_GRID_SIZE; y++) {
-      for (let x = 0; x < OUTPOST_GRID_SIZE; x++) {
+    for (let y = 0; y < SPACE_STATION_GRID_SIZE; y++) {
+      for (let x = 0; x < SPACE_STATION_GRID_SIZE; x++) {
         const found = grid.get(`${x}-${y}`);
         cells.push({
           x,
@@ -251,7 +221,7 @@ export class OutpostComponent implements OnDestroy {
   protected refresh(): void {
     this.loading.set(true);
     this.loadError.set(null);
-    this.outpostApi.getState().subscribe({
+    this.stationApi.getState().subscribe({
       next: (state) => {
         this.state.set(state);
         this.loading.set(false);
@@ -259,7 +229,7 @@ export class OutpostComponent implements OnDestroy {
         if (auto) this.collectMessage.set(auto);
       },
       error: () => {
-        this.loadError.set('Could not load the outpost.');
+        this.loadError.set('Could not load the space station.');
         this.loading.set(false);
       },
     });
@@ -270,20 +240,23 @@ export class OutpostComponent implements OnDestroy {
   }
 
   protected nameFor(buildingKey: string): string {
-    return OUTPOST_RECIPES.find((r) => r.key === buildingKey)?.name ?? buildingKey;
+    return (
+      SPACE_STATION_RECIPES.find((r) => r.key === buildingKey)?.name ??
+      buildingKey
+    );
   }
 
   protected resourceLabel(resource: ResourceType): string {
     return RESOURCE_LABEL[resource];
   }
 
-  protected costLabel(recipe: OutpostRecipe): string {
+  protected costLabel(recipe: SpaceStationRecipe): string {
     return Object.entries(recipe.cost)
       .map(([resource, amount]) => `${amount} ${RESOURCE_LABEL[resource as ResourceType]}`)
       .join(' + ');
   }
 
-  protected canAfford(recipe: OutpostRecipe): boolean {
+  protected canAfford(recipe: SpaceStationRecipe): boolean {
     const resources = this.state()?.resources;
     if (!resources) return false;
     return Object.entries(recipe.cost).every(
@@ -294,7 +267,7 @@ export class OutpostComponent implements OnDestroy {
   protected craft(recipeKey: string): void {
     this.crafting.set(true);
     this.craftError.set(null);
-    this.outpostApi.craft(recipeKey).subscribe({
+    this.stationApi.craft(recipeKey).subscribe({
       next: (state) => {
         this.state.set(state);
         this.crafting.set(false);
@@ -315,7 +288,7 @@ export class OutpostComponent implements OnDestroy {
     const buildingKey = this.placing();
     if (!buildingKey) return;
     this.placeError.set(null);
-    this.outpostApi.place(buildingKey, x, y).subscribe({
+    this.stationApi.place(buildingKey, x, y).subscribe({
       next: (state) => {
         this.state.set(state);
         this.placing.set(null);
@@ -328,7 +301,7 @@ export class OutpostComponent implements OnDestroy {
 
   protected cooldownRemaining(cell: GridCell): number {
     if (!cell.buildingKey || !cell.lastCollectedAt) return 0;
-    const config = stationFor(cell.buildingKey);
+    const config = spaceStationStationFor(cell.buildingKey);
     if (!config) return 0;
     const readyAt = new Date(cell.lastCollectedAt).getTime() + config.cooldownSeconds * 1000;
     return Math.max(0, Math.ceil((readyAt - this.now()) / 1000));
@@ -336,7 +309,7 @@ export class OutpostComponent implements OnDestroy {
 
   protected openStation(cell: GridCell): void {
     if (!cell.buildingKey || this.cooldownRemaining(cell) > 0) return;
-    const config = stationFor(cell.buildingKey);
+    const config = spaceStationStationFor(cell.buildingKey);
     if (!config) return;
     this.collectError.set(null);
     this.collectMessage.set(null);
@@ -344,7 +317,7 @@ export class OutpostComponent implements OnDestroy {
   }
 
   protected collectStation(x: number, y: number, score: number): void {
-    this.outpostApi.collectStation(x, y, score).subscribe({
+    this.stationApi.collectStation(x, y, score).subscribe({
       next: (result) => {
         this.state.set(result);
         this.activeStation.set(null);
@@ -368,7 +341,7 @@ export class OutpostComponent implements OnDestroy {
 
   protected automationLabel(cell: GridCell): string {
     if (!cell.buildingKey) return '';
-    const config = stationFor(cell.buildingKey);
+    const config = spaceStationStationFor(cell.buildingKey);
     if (!config) return '';
     const resourceLabel =
       config.resource === 'ALL' ? 'all resources' : RESOURCE_LABEL[config.resource];
@@ -387,28 +360,5 @@ export class OutpostComponent implements OnDestroy {
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
-  }
-
-  protected questPercent(quest: QuestProgress): number {
-    return quest.target > 0 ? Math.min(100, Math.round((quest.current / quest.target) * 100)) : 0;
-  }
-
-  protected rewardLabel(quest: OutpostQuest): string {
-    const reward = quest.reward;
-    if (reward.stardust) return `${reward.stardust} Stardust`;
-    if (reward.resource && reward.resourceAmount) {
-      return `${reward.resourceAmount} ${RESOURCE_LABEL[reward.resource]}`;
-    }
-    return '';
-  }
-
-  protected claim(questKey: string): void {
-    this.claimError.set(null);
-    this.outpostApi.claimQuest(questKey).subscribe({
-      next: (state) => this.state.set(state),
-      error: (err: { error?: { message?: string } }) => {
-        this.claimError.set(err.error?.message ?? 'Could not claim that quest.');
-      },
-    });
   }
 }

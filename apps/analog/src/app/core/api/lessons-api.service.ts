@@ -28,6 +28,12 @@ export class LessonsApiService {
     return this.http.get<Lesson>(`${this.base}/${id}`, { withCredentials: true });
   }
 
+  dslReadme() {
+    return this.http.get<{ content: string }>(`${this.base}/dsl-readme`, {
+      withCredentials: true,
+    });
+  }
+
   create(payload: CreateLessonPayload) {
     return this.http.post<Lesson>(this.base, payload, { withCredentials: true });
   }

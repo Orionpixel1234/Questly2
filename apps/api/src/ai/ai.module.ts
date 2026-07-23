@@ -35,5 +35,6 @@ import { NullAiProvider } from './providers/null-ai.provider';
       },
     },
   ],
+  exports: [AiService],
 })
 export class AiModule {}

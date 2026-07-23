@@ -26,6 +26,16 @@ export interface LeaderboardEntry {
 // "played" without doing real lesson content.
 export const STARDUST_PER_LESSON = EXP_PER_LESSON;
 
+// A lesson can be redone after its first completion — otherwise a student
+// who's worked through every published lesson has nothing left to do in the
+// game. A replay still requires actually redoing the real lesson content
+// (quiz answers are re-graded same as a first attempt), just for a smaller
+// reward, and is cooldown-gated so it's "come back later," not an
+// instant-refresh grind loop.
+export const REPLAY_EXP_PER_LESSON = 10;
+export const REPLAY_STARDUST_PER_LESSON = REPLAY_EXP_PER_LESSON;
+export const REPLAY_COOLDOWN_MINUTES = 30;
+
 export interface ShipTier {
   tier: number;
   name: string;

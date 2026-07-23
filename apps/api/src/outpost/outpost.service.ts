@@ -1,14 +1,23 @@
+import { randomUUID } from 'crypto';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
+  ASTEROID_REWARD_ICE,
+  AUTOMATION_INTERVAL_MINUTES,
+  AUTOMATION_MAX_TICKS,
+  AUTOMATION_YIELD_PER_TICK,
   OUTPOST_GRID_SIZE,
   QUEST_CATALOG,
   RESOURCE_TYPES,
+  STARTER_RESOURCE_AMOUNT,
   findRecipe,
   stationFor,
+  type AsteroidAnswerResult,
+  type AsteroidQuestion,
   type OutpostQuest,
   type QuestObjective,
   type OutpostState,
@@ -18,6 +27,8 @@ import {
 } from '@questly/shared-types';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
+import { AiService } from '../ai/ai.service';
 
 interface QuestInputs {
   lessonCount: number;
@@ -27,11 +38,25 @@ interface QuestInputs {
   placedCountByKey: Map<string, number>;
 }
 
+const ASTEROID_REDIS_TTL_SECONDS = 300;
+const DEFAULT_ASTEROID_TOPICS = [
+  'general knowledge',
+  'basic arithmetic',
+  'science trivia',
+];
+
 @Injectable()
 export class OutpostService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    private readonly aiService: AiService,
+  ) {}
 
   async getState(userId: string): Promise<OutpostState> {
+    await this.ensureStarterKit(userId);
+    const automationCollected = await this.applyAutomation(userId);
+
     const [gameProfile, stockRows, buildingRows, inputs, claims] =
       await Promise.all([
         this.prisma.gameProfile.findUnique({ where: { userId } }),
@@ -66,8 +91,10 @@ export class OutpostService {
         y: b.y,
         buildingKey: b.buildingKey,
         lastCollectedAt: b.lastCollectedAt?.toISOString() ?? null,
+        lastAutomationAt: b.lastAutomationAt.toISOString(),
       })),
       quests,
+      automationCollected,
     };
   }
 
@@ -256,15 +283,163 @@ export class OutpostService {
     return this.getState(userId);
   }
 
+  // The Asteroid Belt: needs no crafted building and no lesson, so a brand
+  // new account always has something to do. "Mining" is answering one
+  // Nova-generated question — the correct answer is held server-side in
+  // Redis (never sent to the client) so it can't just be read out of the
+  // network tab.
+  async startAsteroidMining(userId: string): Promise<AsteroidQuestion> {
+    const goals = await this.prisma.goal.findMany({
+      where: { userId },
+      select: { subject: true },
+    });
+    const topics = goals.length
+      ? goals.map((g) => g.subject)
+      : DEFAULT_ASTEROID_TOPICS;
+    const topic = topics[Math.floor(Math.random() * topics.length)];
+
+    const { questions } = await this.aiService.generateQuestions({
+      topic,
+      count: 1,
+    });
+    const picked = questions[0];
+    if (!picked) {
+      throw new ServiceUnavailableException(
+        'Nova could not prepare a question right now — try again.',
+      );
+    }
+
+    const attemptId = randomUUID();
+    await this.redis.client.set(
+      `asteroid:${attemptId}`,
+      JSON.stringify({ userId, answer: picked.a }),
+      'EX',
+      ASTEROID_REDIS_TTL_SECONDS,
+    );
+    return { attemptId, question: picked.q };
+  }
+
+  async answerAsteroidMining(
+    userId: string,
+    attemptId: string,
+    answer: string,
+  ): Promise<AsteroidAnswerResult> {
+    const key = `asteroid:${attemptId}`;
+    const raw = await this.redis.client.get(key);
+    if (!raw) {
+      throw new BadRequestException(
+        'That question expired — mine again for a new one.',
+      );
+    }
+    await this.redis.client.del(key);
+
+    const stored = JSON.parse(raw) as { userId: string; answer: string };
+    if (stored.userId !== userId) {
+      throw new BadRequestException(
+        'That question expired — mine again for a new one.',
+      );
+    }
+
+    if (!answersMatch(answer, stored.answer)) {
+      return { correct: false, correctAnswer: stored.answer };
+    }
+
+    await this.prisma.resourceBalance.upsert({
+      where: { userId_resource: { userId, resource: 'ICE' } },
+      create: { userId, resource: 'ICE', amount: ASTEROID_REWARD_ICE },
+      update: { amount: { increment: ASTEROID_REWARD_ICE } },
+    });
+
+    return { correct: true, awarded: ASTEROID_REWARD_ICE };
+  }
+
+  // Fires on every getState() call but is a no-op after the first time: a
+  // brand new account has zero ResourceBalance rows of any kind, which can
+  // never become true again once even one has been created (spending a
+  // resource to 0 still leaves the row behind), so this can't re-trigger.
+  private async ensureStarterKit(userId: string): Promise<void> {
+    const count = await this.prisma.resourceBalance.count({
+      where: { userId },
+    });
+    if (count > 0) return;
+    await this.prisma.$transaction(
+      RESOURCE_TYPES.map((resource) =>
+        this.prisma.resourceBalance.create({
+          data: { userId, resource, amount: STARTER_RESOURCE_AMOUNT },
+        }),
+      ),
+    );
+  }
+
+  private async applyAutomation(
+    userId: string,
+  ): Promise<{ resource: ResourceType; amount: number }[]> {
+    const buildings = await this.prisma.outpostBuilding.findMany({
+      where: { userId },
+    });
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
+    const totals = new Map<ResourceType, number>();
+    const intervalMs = AUTOMATION_INTERVAL_MINUTES * 60_000;
+    const now = Date.now();
+
+    for (const building of buildings) {
+      const station = stationFor(building.buildingKey);
+      if (!station) continue;
+
+      const elapsedMs = now - building.lastAutomationAt.getTime();
+      const ticks = Math.min(
+        Math.floor(elapsedMs / intervalMs),
+        AUTOMATION_MAX_TICKS,
+      );
+      if (ticks <= 0) continue;
+
+      const amount = ticks * AUTOMATION_YIELD_PER_TICK;
+      const resources: ResourceType[] =
+        station.resource === 'ALL' ? RESOURCE_TYPES : [station.resource];
+      for (const resource of resources) {
+        ops.push(
+          this.prisma.resourceBalance.upsert({
+            where: { userId_resource: { userId, resource } },
+            create: { userId, resource, amount },
+            update: { amount: { increment: amount } },
+          }),
+        );
+        totals.set(resource, (totals.get(resource) ?? 0) + amount);
+      }
+      ops.push(
+        this.prisma.outpostBuilding.update({
+          where: { id: building.id },
+          data: {
+            lastAutomationAt: new Date(
+              building.lastAutomationAt.getTime() + ticks * intervalMs,
+            ),
+          },
+        }),
+      );
+    }
+
+    if (ops.length) await this.prisma.$transaction(ops);
+    return [...totals.entries()].map(([resource, amount]) => ({
+      resource,
+      amount,
+    }));
+  }
+
   private async loadQuestInputs(userId: string): Promise<QuestInputs> {
-    const [lessonCount, resources, stockRows, buildingRows] = await Promise.all(
-      [
-        this.prisma.lessonCompletion.count({ where: { userId } }),
+    const [completedLessons, resources, stockRows, buildingRows] =
+      await Promise.all([
+        // distinct, not count() — a lesson completed more than once (see
+        // ProgressService.completeLesson's replay support) must still only
+        // count once toward "how many distinct lessons has this user done".
+        this.prisma.lessonCompletion.findMany({
+          where: { userId },
+          select: { lessonId: true },
+          distinct: ['lessonId'],
+        }),
         this.prisma.resourceBalance.findMany({ where: { userId } }),
         this.prisma.craftedItemStock.findMany({ where: { userId } }),
         this.prisma.outpostBuilding.findMany({ where: { userId } }),
-      ],
-    );
+      ]);
     const placedCountByKey = new Map<string, number>();
     for (const b of buildingRows) {
       placedCountByKey.set(
@@ -273,7 +448,7 @@ export class OutpostService {
       );
     }
     return {
-      lessonCount,
+      lessonCount: completedLessons.length,
       resourceMap: new Map(resources.map((r) => [r.resource, r.amount])),
       totalCraftedMap: new Map(
         stockRows.map((s) => [s.buildingKey, s.totalCrafted]),
@@ -326,4 +501,25 @@ export class OutpostService {
       claimed: claimedKeys.has(quest.key),
     };
   }
+}
+
+function normalizeAnswer(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ');
+}
+
+// Same leniency spirit as the mini-games' client-side isAnswerCorrect:
+// short answers (numbers, single words) need an exact match so "4" doesn't
+// accept "40", but longer ones tolerate the student's phrasing being a
+// substring/superset of the model's.
+function answersMatch(given: string, correct: string): boolean {
+  const a = normalizeAnswer(given);
+  const b = normalizeAnswer(correct);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (b.length <= 3) return false;
+  return a.includes(b) || b.includes(a);
 }

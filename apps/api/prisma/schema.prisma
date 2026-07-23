@@ -53,6 +53,7 @@ model User {
   resourceBalances ResourceBalance[]
   craftedStock     CraftedItemStock[]
   outpostBuildings OutpostBuilding[]
+  spaceStationBuildings SpaceStationBuilding[]
   questClaims      QuestClaim[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -102,7 +103,12 @@ model LessonCompletion {
   gradedAt      DateTime?
   completedAt DateTime @default(now())
 
-  @@unique([userId, lessonId])
+  // Not unique on [userId, lessonId] — a lesson can be replayed after its
+  // first completion (see REPLAY_EXP_PER_LESSON), so each attempt is its
+  // own row. ProgressService.completeLesson looks up the most recent one
+  // per (userId, lessonId) to decide "first completion" vs "replay" and to
+  // enforce the replay cooldown.
+  @@index([userId, lessonId])
 }
 
 // DRAFT: author/educator still editing, invisible to everyone else.
@@ -209,6 +215,7 @@ enum ResourceType {
   BIOMASS
   DATACORE
   FUEL
+  ICE
 }
 
 model ResourceBalance {
@@ -250,6 +257,33 @@ model OutpostBuilding {
   y               Int
   placedAt        DateTime  @default(now())
   lastCollectedAt DateTime?
+  // Passive automation clock — separate from lastCollectedAt (the active
+  // station mini-game's own cooldown) so playing the mini-game doesn't
+  // reset the passive trickle, and vice versa. Advances in fixed ticks in
+  // OutpostService.applyAutomation, not to `now()`, so partial progress
+  // toward the next tick isn't lost between checks.
+  lastAutomationAt DateTime @default(now())
+
+  @@unique([userId, x, y])
+}
+
+// A second, independent base — its own grid/coordinate space and its own
+// building catalog (SPACE_STATION_RECIPES in shared-types), deliberately
+// NOT unified with OutpostBuilding even though the shape is identical,
+// so this stays fully isolated from the already-verified Outpost code.
+// Shares the same CraftedItemStock/ResourceBalance tables as Outpost —
+// building keys are globally unique strings, and resources are one shared
+// economy across both bases by design.
+model SpaceStationBuilding {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  buildingKey      String
+  x                Int
+  y                Int
+  placedAt         DateTime  @default(now())
+  lastCollectedAt  DateTime?
+  lastAutomationAt DateTime  @default(now())
 
   @@unique([userId, x, y])
 }
