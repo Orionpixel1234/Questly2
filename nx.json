@@ -69,6 +69,5 @@
       "unitTestRunner": "vitest-analog"
     }
   },
-  "defaultProject": "analog",
-  "nxCloudId": "6a5a3c8979972f685a2adfba"
+  "defaultProject": "analog"
 }
